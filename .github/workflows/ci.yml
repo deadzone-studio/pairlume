@@ -11,6 +11,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt && rustup default stable
-      - run: cargo fmt --check
+      - run: cargo fmt --all --check
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked
+  window:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - run: pacman -Syu --noconfirm --needed base-devel git rust qt6-declarative layer-shell-qt ttf-dejavu
+      - uses: actions/checkout@v4
+      - run: cargo build --locked -p pairlume-ui
+      - name: The window loads
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+          QT_FORCE_STDERR_LOGGING: "1"
+          PAIRLUME_DIR: /tmp/pairlume
+          PAIRLUME_SOCKET: /tmp/pairlume.sock
+        # it runs until it is stopped (124); without its window it ends with 1
+        run: timeout 8 target/debug/pairlume-ui || [ $? -eq 124 ]

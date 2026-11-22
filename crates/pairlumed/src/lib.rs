@@ -26,6 +26,17 @@ use tokio::{
 
 pub const PAIRING_TIME: Duration = Duration::from_secs(120);
 
+/// why a pairing window is gone; the windows have words for it, the log has the details
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Closed {
+    Paired,
+    Stopped,
+    Expired,
+    /// the code, the digits or the proof was wrong, or the phone went away
+    Failed,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum Event {
@@ -35,7 +46,7 @@ pub enum Event {
         seconds: u64,
     },
     PairingClosed {
-        reason: String,
+        reason: Closed,
     },
     /// a shaken phone: does its screen show the same code?
     PairingCode {
@@ -150,21 +161,21 @@ impl Daemon {
         let me = self.clone();
         tokio::spawn(async move {
             tokio::time::sleep(time).await;
-            me.close_window(Some(number), "nobody paired in time");
+            me.close_window(Some(number), Closed::Expired);
         });
         let e = Event::PairingOpen { digits, qr, seconds: time.as_secs() };
         self.tell(e.clone());
         e
     }
     pub fn close_pairing(&self) {
-        self.close_window(None, "stopped");
+        self.close_window(None, Closed::Stopped);
     }
-    fn close_window(&self, number: Option<u64>, why: &str) {
+    fn close_window(&self, number: Option<u64>, reason: Closed) {
         let mut g = self.lock();
         if g.window.as_ref().is_some_and(|w| number.is_none_or(|n| n == w.number)) {
             g.window = None;
             drop(g);
-            self.tell(Event::PairingClosed { reason: why.into() });
+            self.tell(Event::PairingClosed { reason });
         }
     }
     pub fn pairing_open(&self) -> bool {

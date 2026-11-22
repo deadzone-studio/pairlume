@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Phones connect here.
-use crate::{Daemon, Event, Session};
+use crate::{Closed, Daemon, Event, Session};
 use anyhow::{Context, Result, bail};
 use pairlume_core::{
     PROTOCOL_VERSION,
@@ -131,7 +131,7 @@ async fn pair(
             d.lock().store.add(fp, &name)?;
             info!("paired with {name}");
             d.tell(Event::Paired { id: fp, name });
-            d.close_window(Some(number), "paired");
+            d.close_window(Some(number), Closed::Paired);
             drop(place);
             start_session(d, s, fp)
         }
@@ -139,7 +139,8 @@ async fn pair(
             let why = r.err().unwrap_or_else(|| anyhow::anyhow!("pairing was stopped"));
             let _ = send(&mut s, &Msg::Fail { reason: "pairing failed".into() }).await;
             // the digits and the secret had their one try
-            d.close_window(Some(number), &format!("pairing failed: {why:#}"));
+            info!("pairing with {name} failed: {why:#}");
+            d.close_window(Some(number), Closed::Failed);
             Err(why)
         }
     }

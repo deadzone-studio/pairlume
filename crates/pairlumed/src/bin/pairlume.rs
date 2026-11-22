@@ -3,7 +3,7 @@ use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use pairlume_core::message::Capability;
 use pairlumed::{
-    Event,
+    Closed, Event,
     control::{Reply, Request},
     socket_path,
 };
@@ -107,7 +107,11 @@ fn pair(no_qr: bool) -> Result<()> {
                 println!("Paired with {name}. Nothing is allowed yet: pairlume allow \"{name}\" battery");
                 return Ok(());
             }
-            Event::PairingClosed { reason } => bail!("{reason}"),
+            Event::PairingClosed { reason } => bail!(match reason {
+                Closed::Expired => "nobody paired in time",
+                Closed::Stopped => "pairing was stopped",
+                Closed::Paired | Closed::Failed => "the codes did not match, or the phone went away. Run it again for new ones",
+            }),
             _ => {}
         }
     }

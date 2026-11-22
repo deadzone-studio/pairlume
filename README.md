@@ -2,15 +2,17 @@
 
 Your Android phone and your Hyprland desktop as one: texts, calls, notifications, the phone's screen, and plugins.
 
+![Pairing: shake the phone, scan a code, compare six digits, connected](docs/img/pairing.png)
+
 > **Early days.** The encrypted link and pairing work between the computer and a pretend phone. There is no Android
-> app and no window yet. Nothing here is ready for daily use.
+> app yet. Nothing here is ready for daily use.
 
 ## Where it is
 
 | Stage | What | State |
 |---|---|---|
 | 0 | Project, protocol, tests | done |
-| 1 | Pairing (shake, QR, digits), reconnecting, battery | computer side done, Android app and window next |
+| 1 | Pairing (shake, QR, digits), reconnecting, battery | computer side and pairing window done, Android app next |
 | 2 | Texts: window, panel, chat bubbles | planned |
 | 3 | Calls | planned |
 | 4 | Notifications in three styles, colors from the wallpaper, glass, animations | planned |
@@ -36,6 +38,14 @@ Needs a recent stable Rust.
 cargo build
 target/debug/pairlumed                 # the service
 target/debug/pairlume pair             # in another terminal
+```
+
+The pairing window needs Qt 6 (`qt6-declarative`) and `layer-shell-qt`, and a Wayland compositor with layers. It is made
+for Hyprland ([colors and glass](docs/hyprland.md)):
+
+```sh
+cargo build -p pairlume-ui
+target/debug/pairlume-ui
 ```
 
 There is no Android app yet, so a pretend phone does the other half:

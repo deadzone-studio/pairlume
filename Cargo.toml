@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
+# pairlume-ui needs Qt 6 and layer-shell-qt: cargo build -p pairlume-ui
+default-members = ["crates/pairlume-core", "crates/pairlumed", "crates/pairlume-fake"]
 
 [workspace.package]
 version = "0.0.1"
