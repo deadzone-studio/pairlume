@@ -1,0 +1,16 @@
+[package]
+name = "pairlume-fake"
+description = "A pretend phone for trying and testing Pairlume without anyone's data"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+pairlume-core = { path = "../pairlume-core" }
+anyhow.workspace = true
+clap.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true
