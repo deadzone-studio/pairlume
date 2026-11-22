@@ -70,7 +70,7 @@ does not have is dropped and answered with `denied` (`cap`).
 |---|---|---|
 | phone | `ping`; the computer answers `pong` | |
 | phone | `battery` (`percent` 0 to 100, `charging`) | `battery` |
-| phone | `sms_threads`, `sms_messages`, `sms_sent`, `sms_error`, `sms_new` | `sms` |
+| phone | `sms_threads`, `sms_messages`, `sms_faces`, `sms_sent`, `sms_error`, `sms_new` | `sms` |
 
 ### Texts
 
@@ -81,6 +81,7 @@ The computer asks with `req`, its number for the question; the phone answers wit
 |---|---|
 | `sms_list` (`limit`, `before`) | `sms_threads` (`threads`, newest first, `more`) |
 | `sms_read` (`thread`, `limit`, `before`) | `sms_messages` (`thread`, `messages`, oldest first, `more`) |
+| `sms_photos` (`addresses`, at most 5) | `sms_faces` (`faces`: `address`, `png` as base64, round, at most 48 KB) |
 | `sms_send` (`to`, `text`) | `sms_sent` when the network took it |
 
 A conversation: `id`, `address`, `name` (empty when it is not in the contacts), `snippet`, `date`, `unread`. A text: `id`,

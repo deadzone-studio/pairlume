@@ -9,11 +9,21 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.database.Cursor
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
 import android.net.Uri
 import android.provider.ContactsContract
 import android.provider.Telephony.Sms
 import android.telephony.SmsManager
+import android.util.Base64
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.net.toUri
 import dev.pairlume.core.Message
 import dev.pairlume.core.PairlumeException
 import dev.pairlume.core.SmsRate
@@ -22,12 +32,14 @@ import dev.pairlume.core.maybeLong
 import dev.pairlume.core.message
 import dev.pairlume.core.number
 import dev.pairlume.core.text
+import dev.pairlume.core.texts
 import dev.pairlume.core.type
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -58,7 +70,7 @@ class Texts(private val c: Context) {
     /** the answer to a question of the computer, null when it is not about texts */
     fun answer(m: Message): Message? {
         val req = when (m.type) {
-            "sms_list", "sms_read", "sms_send" -> m.longNumber("req")
+            "sms_list", "sms_read", "sms_photos", "sms_send" -> m.longNumber("req")
             else -> return null
         }
         fun no(why: String) = message("sms_error", "req" to req, "reason" to why)
@@ -71,7 +83,8 @@ class Texts(private val c: Context) {
             } else {
                 if (!Choices(c).read) return no("Reading texts is off in Pairlume on the phone")
                 val limit = m.number("limit").coerceIn(1, 60)
-                if (m.type == "sms_list") threads(req, limit, m.maybeLong("before")) else texts(req, m.longNumber("thread"), limit, m.maybeLong("before"))
+                if (m.type == "sms_photos") photos(req, m.texts("addresses").take(5))
+                else if (m.type == "sms_list") threads(req, limit, m.maybeLong("before")) else texts(req, m.longNumber("thread"), limit, m.maybeLong("before"))
             }
         } catch (e: PairlumeException) {
             no(e.message ?: "")
@@ -89,6 +102,34 @@ class Texts(private val c: Context) {
             arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME), null, null, null,
         )?.use { if (it.moveToFirst()) it.getString(0) else null } ?: ""
     }
+
+    /** the round picture of a contact; only while the computer asks, never kept */
+    private fun photo(address: String): String? {
+        if (c.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED || address.none(Char::isDigit)) return null
+        val uri = c.contentResolver.query(
+            Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(address)),
+            arrayOf(ContactsContract.PhoneLookup.PHOTO_THUMBNAIL_URI, ContactsContract.PhoneLookup.PHOTO_URI), null, null, null,
+        )?.use { if (it.moveToFirst()) it.getString(0) ?: it.getString(1) else null } ?: return null
+        val src = c.contentResolver.openInputStream(uri.toUri())?.use(BitmapFactory::decodeStream) ?: return null
+        val side = minOf(src.width, src.height)
+        for (size in listOf(112, 80)) {
+            val out = createBitmap(size, size)
+            val from = Rect((src.width - side) / 2, (src.height - side) / 2, (src.width + side) / 2, (src.height + side) / 2)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            Canvas(out).run {
+                drawCircle(size / 2f, size / 2f, size / 2f, paint)
+                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                drawBitmap(src, from, Rect(0, 0, size, size), paint)
+            }
+            val png = ByteArrayOutputStream().also { out.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+            if (png.size <= 35_000) return Base64.encodeToString(png, Base64.NO_WRAP)
+        }
+        return null
+    }
+
+    private fun photos(req: Long, addresses: List<String>) = JsonObject(message("sms_faces", "req" to req) + ("faces" to buildJsonArray {
+        addresses.forEach { a -> photo(a)?.let { add(buildJsonObject { put("address", a); put("png", it) }) } }
+    }))
 
     private fun thread(id: Long, address: String, body: String, date: Long, unread: Int) = buildJsonObject {
         put("id", id); put("address", address); put("name", name(address)); put("snippet", body.take(200)); put("date", date); put("unread", unread)

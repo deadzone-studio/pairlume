@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use cxx_qt_build::{CxxQtBuilder, QmlFile, QmlModule};
 
-const PAGES: [&str; 16] = [
+const PAGES: [&str; 18] = [
     "Main",
     "PairingCard",
     "Phone",
@@ -18,11 +18,13 @@ const PAGES: [&str; 16] = [
     "MessagesPanel",
     "Bubbles",
     "Shots",
+    "Glass",
+    "Round",
 ];
 
 fn main() {
     let pages = PAGES.iter().map(|p| QmlFile::from(format!("qml/{p}.qml")));
-    let files = pages.chain([QmlFile::from("qml/Theme.qml").singleton(true)]);
+    let files = pages.chain(["qml/Theme.qml", "qml/Tr.qml"].map(|p| QmlFile::from(p).singleton(true)));
     CxxQtBuilder::new_qml_module(QmlModule::new("dev.pairlume").qml_files(files))
         .qt_module("Quick")
         .qt_module("Network")

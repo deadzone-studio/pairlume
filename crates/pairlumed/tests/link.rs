@@ -336,3 +336,29 @@ async fn a_question_ends_when_the_phone_goes_away() {
     assert!(e.to_string().contains("went away"), "{e}");
     assert!(pc.d.ask(&fp, Capability::Sms, |req| Msg::SmsList { req, limit: 1, before: None }).await.is_err());
 }
+
+#[tokio::test]
+async fn pictures_that_are_not_pictures_are_dropped() {
+    use pairlume_core::message::Face;
+    let mut pc = Pc::new().await;
+    let id = Identity::generate().unwrap();
+    let mut l = pc.paired(&id).await;
+    let fp = id.fingerprint;
+    pc.d.allow(&fp, Capability::Sms, true).unwrap();
+    let d = pc.d.clone();
+    let q =
+        tokio::spawn(async move { d.ask(&fp, Capability::Sms, |req| Msg::SmsPhotos { req, addresses: vec!["1".into()] }).await });
+    let face = |png: &str| Face { address: "1".into(), png: png.into() };
+    loop {
+        if let Msg::SmsPhotos { req, .. } = next(&mut l).await.unwrap() {
+            let big = format!("iVBORw0KGgo{}", "A".repeat(50_000));
+            let faces = vec![face("iVBORw0KGgoAAA="), face("PHN2Zz4="), face("iVBORw0KGgo\" onload"), face(&big)];
+            send(&mut l.stream, &Msg::SmsFaces { req, faces }).await.unwrap();
+            break;
+        }
+    }
+    match q.await.unwrap().unwrap() {
+        Msg::SmsFaces { faces, .. } => assert_eq!(faces, [face("iVBORw0KGgoAAA=")]),
+        m => panic!("{m:?}"),
+    }
+}

@@ -12,13 +12,13 @@ Window {
     LayerShell.Window.anchors: LayerShell.Window.AnchorRight | LayerShell.Window.AnchorTop | LayerShell.Window.AnchorBottom
     LayerShell.Window.keyboardInteractivity: LayerShell.Window.KeyboardInteractivityOnDemand
     LayerShell.Window.exclusionZone: 0
-    title: qsTr("Messages")
+    title: Tr.t("Messages")
     width: 420
     height: 800
     color: "transparent"
     visible: true
     function leave() { if (!out.running) out.start() }
-    Service { id: service; onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors.json: " + e) } } }
+    Service { id: service; onBlurredChanged: Theme.blurred = blurred; onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors: " + e) } } }
     Texts { id: texts; service: service }
     Item {
         id: scene

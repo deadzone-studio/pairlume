@@ -75,7 +75,7 @@ async fn stay(l: Link, battery: u8, seconds: Option<u64>) -> Result<()> {
         loop {
             match recv(&mut r).await? {
                 Msg::Pong => {}
-                m @ (Msg::SmsList { .. } | Msg::SmsRead { .. } | Msg::SmsSend { .. }) => {
+                m @ (Msg::SmsList { .. } | Msg::SmsRead { .. } | Msg::SmsPhotos { .. } | Msg::SmsSend { .. }) => {
                     let (answer, later) = texts.answer(m);
                     if let Some(a) = answer {
                         send(&mut *w.lock().await, &a).await?;

@@ -9,7 +9,7 @@ Item {
     property string device
     property string deviceName
     property bool online: false
-    property string trouble: qsTr("Pairlume is not running")
+    property string trouble: Tr.t("Pairlume is not running")
     property bool loading: false
     property bool more: false
     property int open: -1              // the conversation that is open (its id)
@@ -21,6 +21,18 @@ Item {
     readonly property ListModel messages: ListModel {}
     signal came(var thread, var message)
 
+    // pictures from the contacts, by number; asked for a few at a time
+    property var faces: ({})
+    property var wanted: []
+    property bool fetching: false
+    function face(address) { return faces[address] || "" }
+    function wantFace(t) { if (t.name !== "" && !(t.address in faces) && !wanted.includes(t.address)) { wanted.push(t.address); nextFaces() } }
+    function nextFaces() {
+        if (fetching || !online || wanted.length === 0) return
+        fetching = true
+        const some = wanted.slice(0, 5)
+        ask("faces " + some.length, { cmd: "sms_photos", device: device, addresses: some })
+    }
     function title(t) { return t.name || t.address }
     function ask(tag, r) { service.askFor(tag, JSON.stringify(r)) }
     function look() { ask("status", { cmd: "status" }) }
@@ -57,7 +69,7 @@ Item {
         target: tx.service
         function onConnectedChanged() {
             if (tx.service.connected) tx.look()
-            else { tx.online = false; tx.trouble = qsTr("Pairlume is not running") }
+            else { tx.online = false; tx.trouble = Tr.t("Pairlume is not running") }
         }
         function onHappened(json) {
             const e = JSON.parse(json)
@@ -66,6 +78,7 @@ Item {
                 const here = e.thread.id === tx.open
                 tx.up(Object.assign({}, e.thread, { unread: here ? 0 : e.thread.unread }))
                 if (here) { const r = tx.row(e.message); r.fresh = true; tx.messages.append(r) }
+                tx.wantFace(e.thread)
                 tx.came(e.thread, e.message)
             }
         }
@@ -78,8 +91,8 @@ Item {
                 tx.device = s ? s.id : ""
                 tx.deviceName = s ? s.name : ""
                 tx.online = !!(s && s.online && may)
-                tx.trouble = !s ? qsTr("No phone is paired yet") : !s.online ? qsTr("%1 is not connected").arg(s.name)
-                           : !may ? qsTr("Texts are off for %1. To turn them on:\npairlume allow \"%1\" sms").arg(s.name) : ""
+                tx.trouble = !s ? Tr.t("No phone is paired yet") : !s.online ? Tr.t("%1 is not connected").arg(s.name)
+                           : !may ? Tr.t("Texts are off for %1. To turn them on:\npairlume allow \"%1\" sms").arg(s.name) : ""
                 if (tx.device !== was) { if (tx.online) tx.refresh(); if (was !== "" && tx.device !== "") { tx.threads.clear(); tx.leave() } }
                 return
             }
@@ -88,13 +101,20 @@ Item {
                 if (!a) { tx.trouble = r.why || ""; tx.loading = false; return }
                 tx.trouble = ""
                 if (kind === "threads") tx.threads.clear()
-                a.threads.forEach(t => tx.threads.append(t))
+                a.threads.forEach(t => { tx.threads.append(t); tx.wantFace(t) })
                 tx.more = a.more
                 tx.loading = false
             } else if (kind === "read" || kind === "earlier") {
                 if (n !== tx.round || !a) return
                 tx.moreBefore = a.more
                 a.messages.slice().reverse().forEach(m => tx.messages.insert(0, tx.row(m)))
+            } else if (kind === "faces") {
+                tx.fetching = false
+                const f = Object.assign({}, tx.faces)
+                tx.wanted.splice(0, n).forEach(x => { if (!(x in f)) f[x] = "" })
+                if (a) a.faces.forEach(x => { f[x.address] = "data:image/png;base64," + x.png })
+                tx.faces = f
+                tx.nextFaces()
             } else if (kind === "sent") {
                 // no answer in time: it may have gone out. Saying "failed" could make someone send it twice
                 tx.mark(n, a ? "" : /did not answer|went away/.test(r.why || "") ? "unsure" : "failed")

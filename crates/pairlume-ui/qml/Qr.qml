@@ -10,7 +10,7 @@ Rectangle {
     radius: 20
     color: "white"
     Accessible.role: Accessible.Graphic
-    Accessible.name: qsTr("QR code for pairing")
+    Accessible.name: Tr.t("QR code for pairing")
     onRowsChanged: cv.requestPaint()
     Canvas {
         id: cv

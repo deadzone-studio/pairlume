@@ -26,6 +26,8 @@ pub mod qobject {
         #[qml_element]
         #[qproperty(bool, connected)]
         #[qproperty(QString, colors)]
+        /// the compositor blurs what is behind our windows
+        #[qproperty(bool, blurred)]
         type Service = super::ServiceRust;
 
         /// something happened in pairlumed (one JSON, see pairlumed::Event)
@@ -57,6 +59,7 @@ pub mod qobject {
 pub struct ServiceRust {
     connected: bool,
     colors: QString,
+    blurred: bool,
     started: bool,
 }
 
@@ -73,6 +76,22 @@ fn request(s: &mut BufReader<UnixStream>, json: &str) -> Result<Reply> {
         Some(e) => bail!(e),
         None => Ok(r),
     }
+}
+
+/// Hyprland: is blur on, and may it blur our layers? Ordinary windows are blurred anyway. The rule lasts until Hyprland
+/// reads its config again; nothing is written to anyone's config.
+fn blur() -> bool {
+    let run = |args: &[&str]| {
+        let o = std::process::Command::new("hyprctl").args(args).output().ok()?;
+        o.status.success().then(|| String::from_utf8_lossy(&o.stdout).trim().to_string())
+    };
+    if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_none() {
+        return false;
+    }
+    let on = run(&["getoption", "decoration:blur:enabled"]).is_some_and(|o| o.contains("true") || o.contains("int: 1"));
+    let rule =
+        r#"hl.layer_rule({ name = "pairlume-blur", match = { namespace = "pairlume" }, blur = true, ignore_alpha = 0.2 })"#;
+    on && run(&["eval", rule]).is_some_and(|o| o == "ok")
 }
 
 impl qobject::Service {
@@ -103,21 +122,31 @@ impl qobject::Service {
                 std::thread::sleep(Duration::from_secs(1));
             }
         });
-        // colors.json is written by matugen (contrib/matugen): the window follows the wallpaper
-        let qt = self.qt_thread();
+        // the wallpaper's colors: our own file (contrib/matugen), else the palette a shell keeps. An open window follows
+        let qt = self.as_ref().qt_thread();
         std::thread::spawn(move || {
-            let Ok(path) = config_dir().map(|d| d.join("colors.json")) else { return };
+            let home = std::env::var_os("HOME").map(std::path::PathBuf::from).unwrap_or_default();
+            let mut files: Vec<_> = config_dir().map(|d| d.join("colors.json")).into_iter().collect();
+            files.push(home.join(".config/rice/palette.json"));
             let mut last = None;
             loop {
-                let now = std::fs::metadata(&path).and_then(|m| m.modified()).ok();
+                let now = files.iter().find_map(|f| Some((f.clone(), std::fs::metadata(f).and_then(|m| m.modified()).ok()?)));
                 if now.is_some() && now != last {
-                    last = now;
-                    let text = QString::from(std::fs::read_to_string(&path).unwrap_or_default().as_str());
-                    if qt.queue(move |o| o.set_colors(text)).is_err() {
-                        return;
+                    if let Some(text) = now.as_ref().and_then(|(f, _)| std::fs::read_to_string(f).ok()) {
+                        let text = QString::from(text.as_str());
+                        if qt.queue(move |o| o.set_colors(text)).is_err() {
+                            return;
+                        }
                     }
+                    last = now;
                 }
                 std::thread::sleep(Duration::from_millis(700));
+            }
+        });
+        let qt = self.qt_thread();
+        std::thread::spawn(move || {
+            if blur() {
+                let _ = qt.queue(|o| o.set_blurred(true));
             }
         });
     }

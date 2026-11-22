@@ -13,12 +13,12 @@ Window {
     LayerShell.Window.anchors: LayerShell.Window.AnchorRight
     LayerShell.Window.keyboardInteractivity: texts.open >= 0 ? LayerShell.Window.KeyboardInteractivityOnDemand : LayerShell.Window.KeyboardInteractivityNone
     LayerShell.Window.exclusionZone: 0
-    title: qsTr("Messages")
+    title: Tr.t("Messages")
     width: wide ? 460 : 76
     height: 560
     color: "transparent"
     visible: true
-    Service { id: service; onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors.json: " + e) } } }
+    Service { id: service; onBlurredChanged: Theme.blurred = blurred; onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors: " + e) } } }
     Texts {
         id: texts
         service: service
@@ -85,6 +85,8 @@ Window {
                     width: 54
                     height: 54
                     name: f.model.name || f.model.address
+                    address: f.model.address
+                    photo: texts.face(f.model.address)
                     unread: f.model.unread
                     scale: m.pressed ? 0.9 : f.model.tid === texts.open ? 1.08 : m.containsMouse ? 1.06 : 1
                     Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spring } }

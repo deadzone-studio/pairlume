@@ -41,6 +41,10 @@ pub enum Request {
         thread: i64,
         before: Option<i64>,
     },
+    SmsPhotos {
+        device: String,
+        addresses: Vec<String>,
+    },
     SmsSend {
         device: String,
         to: String,
@@ -147,6 +151,11 @@ async fn run(d: &Arc<Daemon>, r: Request) -> Result<Reply> {
         Request::SmsMessages { device, thread, before } => {
             let fp = d.find(&device)?;
             out.answer = Some(d.ask(&fp, Capability::Sms, |req| Msg::SmsRead { req, thread, limit: 50, before }).await?);
+        }
+        Request::SmsPhotos { device, mut addresses } => {
+            let fp = d.find(&device)?;
+            addresses.truncate(5);
+            out.answer = Some(d.ask(&fp, Capability::Sms, |req| Msg::SmsPhotos { req, addresses }).await?);
         }
         Request::SmsSend { device, to, text } => {
             let fp = d.find(&device)?;

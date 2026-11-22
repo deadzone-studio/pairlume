@@ -20,6 +20,7 @@ Window {
 
     Service {
         id: service
+        onBlurredChanged: Theme.blurred = blurred
         onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors.json: " + e) } }
         Component.onCompleted: start()
     }

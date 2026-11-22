@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Conversations that never were.
-use pairlume_core::message::{Msg, Text, Thread};
+use pairlume_core::message::{Face, Msg, Text, Thread};
 
 /// name, number, (from me, text)
 type Talk = (&'static str, &'static str, &'static [(bool, &'static str)]);
@@ -27,7 +27,7 @@ impl Sms {
             ),
             ("Mama", "+48 555 010 002", &[(false, "Kup mleko po drodze"), (true, "Ok, coś jeszcze?"), (false, "Chleb i masło")]),
             ("", "+48 555 010 003", &[(false, "Dzień dobry, kurier będzie między 12 a 14.")]),
-            ("Kuba", "+48 555 010 004", &[(true, "Gramy?"), (false, "Za 10 minut"), (true, "Czekam na serwerze")]),
+            ("8 Kuba klasa", "+48 555 010 004", &[(true, "Gramy?"), (false, "Za 10 minut"), (true, "Czekam na serwerze")]),
             ("", "PARCEL", &[(false, "Your parcel is waiting. Code: 000000.")]),
         ];
         let mut s = Self { threads: vec![], next: 1000, now };
@@ -87,6 +87,16 @@ impl Sms {
                 }
                 None => (Some(Msg::SmsError { req, reason: "no such conversation".into() }), None),
             },
+            Msg::SmsPhotos { req, addresses } => {
+                let art: [(&str, &[u8]); 2] = [
+                    ("+48 555 010 001", include_bytes!("../art/ola.png")),
+                    ("+48 555 010 002", include_bytes!("../art/mama.png")),
+                ];
+                let faces = (art.iter().filter(|(a, _)| addresses.iter().any(|x| x == a)))
+                    .map(|(a, png)| Face { address: (*a).into(), png: base64(png) })
+                    .collect();
+                (Some(Msg::SmsFaces { req, faces }), None)
+            }
             Msg::SmsSend { req, to, text } => match self.threads.iter().position(|t| t.0.address == to) {
                 Some(i) => {
                     self.push(i, true, &text);
@@ -98,4 +108,16 @@ impl Sms {
             _ => (None, None),
         }
     }
+}
+
+fn base64(b: &[u8]) -> String {
+    const ABC: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut s = String::with_capacity(b.len().div_ceil(3) * 4);
+    for c in b.chunks(3) {
+        let n = u32::from(c[0]) << 16 | u32::from(*c.get(1).unwrap_or(&0)) << 8 | u32::from(*c.get(2).unwrap_or(&0));
+        for i in 0..4 {
+            s.push(if i <= c.len() { ABC[(n >> (18 - 6 * i) & 63) as usize] as char } else { '=' });
+        }
+    }
+    s
 }

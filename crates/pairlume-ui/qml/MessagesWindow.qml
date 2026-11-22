@@ -5,17 +5,24 @@ import dev.pairlume
 
 Window {
     id: win
-    title: qsTr("Messages")
-    width: 920
-    height: 640
+    title: Tr.t("Messages")
+    width: 980
+    height: 680
     minimumWidth: 360
     minimumHeight: 420
     color: "transparent"
     visible: true
-    Service { id: service; onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors.json: " + e) } } }
+    Service { id: service; onBlurredChanged: Theme.blurred = blurred; onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors: " + e) } } }
     Texts { id: texts; service: service }
-    MessagesView { id: view; anchors.fill: parent; texts: texts; focus: true; Keys.onEscapePressed: texts.leave() }
-    Shots { of: view; what: texts.open >= 0 ? "messages-" + texts.open + "-" + texts.messages.count : texts.threads.count > 0 ? "messages" : "" }
+    // --backdrop FILE: a picture behind it, as if it was the blurred wallpaper (for the README)
+    Item {
+        id: scene
+        anchors.fill: parent
+    Image { anchors.fill: parent; fillMode: Image.PreserveAspectCrop; source: { const a = Qt.application.arguments, i = a.indexOf("--backdrop"); return i > 0 ? "file://" + a[i + 1] : "" } visible: source != "" }
+    // the compositor rounds the window
+    MessagesView { id: view; radius: 0; anchors.fill: parent; texts: texts; focus: true; Keys.onEscapePressed: texts.leave() }
+    }
+    Shots { of: scene; what: texts.open >= 0 ? "messages-" + texts.open + "-" + texts.messages.count : texts.threads.count > 0 ? "messages" : "" }
     // --open N: the Nth conversation at once
     Connections {
         target: texts

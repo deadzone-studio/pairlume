@@ -123,6 +123,15 @@ pub enum Msg {
     SmsSent {
         req: u64,
     },
+    /// pictures from the contacts, for these numbers
+    SmsPhotos {
+        req: u64,
+        addresses: Vec<String>,
+    },
+    SmsFaces {
+        req: u64,
+        faces: Vec<Face>,
+    },
     /// a question that could not be answered
     SmsError {
         req: u64,
@@ -168,6 +177,21 @@ pub struct Text {
     pub failed: bool,
 }
 
+/// a round picture (PNG, base64) of whoever has this number
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Face {
+    pub address: String,
+    pub png: String,
+}
+
+impl Face {
+    /// base64 of something that starts like a PNG and is no larger than a small picture
+    fn sound(&self) -> bool {
+        let ok = |b: u8| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'/' | b'=');
+        self.address.len() <= 64 && self.png.len() <= 48 * 1024 && self.png.starts_with("iVBORw0KGgo") && self.png.bytes().all(ok)
+    }
+}
+
 impl Text {
     fn clean(&mut self) {
         self.text = clean_text(&self.text);
@@ -194,9 +218,11 @@ impl Msg {
     /// the number of the question this answers
     pub fn answers(&self) -> Option<u64> {
         match self {
-            Self::SmsThreads { req, .. } | Self::SmsMessages { req, .. } | Self::SmsSent { req } | Self::SmsError { req, .. } => {
-                Some(*req)
-            }
+            Self::SmsThreads { req, .. }
+            | Self::SmsMessages { req, .. }
+            | Self::SmsFaces { req, .. }
+            | Self::SmsSent { req }
+            | Self::SmsError { req, .. } => Some(*req),
             _ => None,
         }
     }
@@ -210,6 +236,7 @@ impl Msg {
                 thread.clean();
                 message.clean();
             }
+            Self::SmsFaces { faces, .. } => faces.retain(Face::sound),
             Self::SmsError { reason, .. } => *reason = crate::store::clean_name(reason),
             _ => {}
         }
@@ -222,6 +249,7 @@ impl Msg {
             Self::Battery { .. } => Some(Capability::Battery),
             Self::SmsThreads { .. }
             | Self::SmsMessages { .. }
+            | Self::SmsFaces { .. }
             | Self::SmsSent { .. }
             | Self::SmsError { .. }
             | Self::SmsNew { .. } => Some(Capability::Sms),

@@ -177,7 +177,7 @@ class LinkService : Service() {
                         // a battery that was refused before is told again
                         battery?.let { if ("battery" in caps) l.wire.send(it) }
                     }
-                    "sms_list", "sms_read", "sms_send" -> {
+                    "sms_list", "sms_read", "sms_photos", "sms_send" -> {
                         val q = m
                         answers.execute {
                             try { texts.answer(q)?.let(l.wire::send) } catch (_: Exception) { l.close() }

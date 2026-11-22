@@ -33,8 +33,8 @@ Rectangle {
         case "pairing_code": name = e.name; code = e.code; answered = false; step = "asking"; break
         case "paired": name = e.name; step = "paired"; break
         case "pairing_closed": if (step === "looking" || step === "asking") {
-                why = ({ expired: qsTr("No phone in two minutes"), stopped: qsTr("Pairing was stopped"),
-                         failed: qsTr("The codes were not the same, or the phone went away") })[e.reason] || ""
+                why = ({ expired: Tr.t("No phone in two minutes"), stopped: Tr.t("Pairing was stopped"),
+                         failed: Tr.t("The codes were not the same, or the phone went away") })[e.reason] || ""
                 step = "failed"; nope.restart()
             }
             break
@@ -75,8 +75,8 @@ Rectangle {
     Text {
         id: title
         anchors { top: parent.top; topMargin: 34; horizontalCenter: parent.horizontalCenter }
-        text: ({ looking: card.how === "shake" ? qsTr("Shake your phone") : card.how === "qr" ? qsTr("Scan with your phone") : qsTr("Type this on your phone"),
-                 asking: card.name, paired: qsTr("Connected"), failed: qsTr("That did not work"), gone: qsTr("Pairlume is not running") })[card.step]
+        text: ({ looking: card.how === "shake" ? Tr.t("Shake your phone") : card.how === "qr" ? Tr.t("Scan with your phone") : Tr.t("Type this on your phone"),
+                 asking: card.name, paired: Tr.t("Connected"), failed: Tr.t("That did not work"), gone: Tr.t("Pairlume is not running") })[card.step]
         textFormat: Text.PlainText
         width: parent.width - 60
         horizontalAlignment: Text.AlignHCenter
@@ -98,8 +98,8 @@ Rectangle {
         maximumLineCount: 3
         elide: Text.ElideRight
         textFormat: Text.PlainText
-        text: ({ looking: qsTr("with Pairlume open, on the same Wi-Fi"), asking: qsTr("Is the same code on its screen?"), paired: card.name,
-                 failed: card.why, gone: qsTr("Start pairlumed, this window will notice") })[card.step]
+        text: ({ looking: Tr.t("with Pairlume open, on the same Wi-Fi"), asking: Tr.t("Is the same code on its screen?"), paired: card.name,
+                 failed: card.why, gone: Tr.t("Start pairlumed, this window will notice") })[card.step]
         color: card.step === "failed" ? Theme.bad : Theme.dim
         font.pixelSize: 14
     }
@@ -206,9 +206,9 @@ Rectangle {
         anchors { bottom: parent.bottom; bottomMargin: 34; horizontalCenter: parent.horizontalCenter }
         spacing: 10
         visible: card.step === "looking"
-        Pill { text: qsTr("Shake"); chosen: card.how === "shake"; onClicked: card.how = "shake" }
-        Pill { text: qsTr("QR code"); chosen: card.how === "qr"; enabled: card.qr !== ""; onClicked: card.how = "qr" }
-        Pill { text: qsTr("Digits"); chosen: card.how === "digits"; onClicked: card.how = "digits" }
+        Pill { text: Tr.t("Shake"); chosen: card.how === "shake"; onClicked: card.how = "shake" }
+        Pill { text: Tr.t("QR code"); chosen: card.how === "qr"; enabled: card.qr !== ""; onClicked: card.how = "qr" }
+        Pill { text: Tr.t("Digits"); chosen: card.how === "digits"; onClicked: card.how = "digits" }
     }
     Row {
         anchors { bottom: parent.bottom; bottomMargin: 34; horizontalCenter: parent.horizontalCenter }
@@ -218,20 +218,20 @@ Rectangle {
         property bool ready: false
         onVisibleChanged: { ready = false; if (visible) wait.restart() }
         Timer { id: wait; interval: 900; onTriggered: parent.ready = true }
-        Pill { text: qsTr("Not the same"); enabled: parent.ready && !card.answered; onClicked: card.answer(false) }
-        Pill { text: qsTr("They match"); filled: true; enabled: parent.ready && !card.answered; onClicked: card.answer(true) }
+        Pill { text: Tr.t("Not the same"); enabled: parent.ready && !card.answered; onClicked: card.answer(false) }
+        Pill { text: Tr.t("They match"); filled: true; enabled: parent.ready && !card.answered; onClicked: card.answer(true) }
     }
     Row {
         anchors { bottom: parent.bottom; bottomMargin: 34; horizontalCenter: parent.horizontalCenter }
         spacing: 12
         visible: card.step === "failed"
-        Pill { text: qsTr("Close"); onClicked: card.closed() }
-        Pill { text: qsTr("Try again"); filled: true; onClicked: card.begin() }
+        Pill { text: Tr.t("Close"); onClicked: card.closed() }
+        Pill { text: Tr.t("Try again"); filled: true; onClicked: card.begin() }
     }
     Pill {
         anchors { bottom: parent.bottom; bottomMargin: 34; horizontalCenter: parent.horizontalCenter }
         visible: card.step === "gone"
-        text: qsTr("Close")
+        text: Tr.t("Close")
         onClicked: card.closed()
     }
 }
