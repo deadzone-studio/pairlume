@@ -18,12 +18,13 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.net.Uri
 import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds.Phone as Phones
+import android.provider.ContactsContract.Contacts
 import android.provider.Telephony.Sms
 import android.telephony.SmsManager
 import android.util.Base64
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
-import androidx.core.net.toUri
 import dev.pairlume.core.Message
 import dev.pairlume.core.PairlumeException
 import dev.pairlume.core.SmsRate
@@ -82,9 +83,11 @@ class Texts(private val c: Context) {
                 message("sms_sent", "req" to req)
             } else {
                 if (!Choices(c).read) return no("Reading texts is off in Pairlume on the phone")
-                val limit = m.number("limit").coerceIn(1, 60)
-                if (m.type == "sms_photos") photos(req, m.texts("addresses").take(5))
-                else if (m.type == "sms_list") threads(req, limit, m.maybeLong("before")) else texts(req, m.longNumber("thread"), limit, m.maybeLong("before"))
+                when (m.type) {
+                    "sms_photos" -> photos(req, m.texts("addresses").take(5))
+                    "sms_list" -> threads(req, m.number("limit").coerceIn(1, 60), m.maybeLong("before"))
+                    else -> texts(req, m.longNumber("thread"), m.number("limit").coerceIn(1, 60), m.maybeLong("before"))
+                }
             }
         } catch (e: PairlumeException) {
             no(e.message ?: "")
@@ -103,16 +106,41 @@ class Texts(private val c: Context) {
         )?.use { if (it.moveToFirst()) it.getString(0) else null } ?: ""
     }
 
+    /** every contact with this number: the same person is often saved twice (SIM, Google, Samsung), and only one has the picture */
+    private fun contacts(address: String): List<Uri> {
+        val ids = LinkedHashMap<Long, Uri>()
+        c.contentResolver.query(
+            Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(address)),
+            arrayOf(ContactsContract.PhoneLookup._ID, ContactsContract.PhoneLookup.LOOKUP_KEY), null, null, null,
+        )?.use { while (it.moveToNext()) ids[it.getLong(0)] = Contacts.getLookupUri(it.getLong(0), it.getString(1)) }
+        val tail = address.filter(Char::isDigit).takeLast(9)
+        if (tail.length == 9) c.contentResolver.query(
+            Phones.CONTENT_URI, arrayOf(Phones.CONTACT_ID, Phones.LOOKUP_KEY, Phones.NUMBER), null, null, null,
+        )?.use { while (it.moveToNext()) if ((it.getString(2) ?: "").filter(Char::isDigit).endsWith(tail)) ids[it.getLong(0)] = Contacts.getLookupUri(it.getLong(0), it.getString(1)) }
+        return ids.values.filterNotNull()
+    }
+
+    private fun picture(uri: Uri): Bitmap? = try {
+        // the small one first; some phones only keep the large one
+        sequenceOf(false, true).firstNotNullOfOrNull { large ->
+            Contacts.openContactPhotoInputStream(c.contentResolver, uri, large)?.use { s ->
+                val b = s.readBytes()
+                val size = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(b, 0, b.size, size)
+                val how = BitmapFactory.Options().apply { inSampleSize = (minOf(size.outWidth, size.outHeight) / 224).coerceAtLeast(1) }
+                BitmapFactory.decodeByteArray(b, 0, b.size, how)
+            }
+        }
+    } catch (_: Exception) {
+        null
+    }
+
     /** the round picture of a contact; only while the computer asks, never kept */
     private fun photo(address: String): String? {
         if (c.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED || address.none(Char::isDigit)) return null
-        val uri = c.contentResolver.query(
-            Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(address)),
-            arrayOf(ContactsContract.PhoneLookup.PHOTO_THUMBNAIL_URI, ContactsContract.PhoneLookup.PHOTO_URI), null, null, null,
-        )?.use { if (it.moveToFirst()) it.getString(0) ?: it.getString(1) else null } ?: return null
-        val src = c.contentResolver.openInputStream(uri.toUri())?.use(BitmapFactory::decodeStream) ?: return null
+        val src = contacts(address).firstNotNullOfOrNull(::picture) ?: return null
         val side = minOf(src.width, src.height)
-        for (size in listOf(112, 80)) {
+        for (size in listOf(128, 96, 72)) {
             val out = createBitmap(size, size)
             val from = Rect((src.width - side) / 2, (src.height - side) / 2, (src.width + side) / 2, (src.height + side) / 2)
             val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
