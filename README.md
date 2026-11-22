@@ -4,15 +4,15 @@ Your Android phone and your Hyprland desktop as one: texts, calls, notifications
 
 ![Pairing: shake the phone, scan a code, compare six digits, connected](docs/img/pairing.png)
 
-> **Early days.** The encrypted link and pairing work between the computer and a pretend phone. There is no Android
-> app yet. Nothing here is ready for daily use.
+> **Early days.** Pairing, reconnecting and the battery work between a computer and an Android phone. That is all so
+> far. Nothing here is ready for daily use.
 
 ## Where it is
 
 | Stage | What | State |
 |---|---|---|
 | 0 | Project, protocol, tests | done |
-| 1 | Pairing (shake, QR, digits), reconnecting, battery | computer side and pairing window done, Android app next |
+| 1 | Pairing (shake, QR, digits), reconnecting, battery | works, being tried on real phones |
 | 2 | Texts: window, panel, chat bubbles | planned |
 | 3 | Calls | planned |
 | 4 | Notifications in three styles, colors from the wallpaper, glass, animations | planned |
@@ -48,7 +48,13 @@ cargo build -p pairlume-ui
 target/debug/pairlume-ui
 ```
 
-There is no Android app yet, so a pretend phone does the other half:
+The Android app (Android 10 or newer) needs JDK 21 and the Android SDK (platform 36):
+
+```sh
+cd android && ./gradlew :app:installDebug
+```
+
+Without a phone, a pretend one does the other half:
 
 ```sh
 target/debug/pairlume-fake --dir /tmp/fake shake 127.0.0.1:47321
