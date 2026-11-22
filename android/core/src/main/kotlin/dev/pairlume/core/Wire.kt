@@ -58,6 +58,8 @@ val Message.type: String get() = text("t")
 fun Message.text(k: String): String = (get(k) as? JsonPrimitive)?.takeIf { it.isString }?.content ?: throw PairlumeException("a message without $k")
 fun Message.flag(k: String): Boolean = (get(k) as? JsonPrimitive)?.booleanOrNull ?: throw PairlumeException("a message without $k")
 fun Message.number(k: String): Int = (get(k) as? JsonPrimitive)?.intOrNull ?: throw PairlumeException("a message without $k")
+fun Message.longNumber(k: String): Long = (get(k) as? JsonPrimitive)?.longOrNull ?: throw PairlumeException("a message without $k")
+fun Message.maybeLong(k: String): Long? = (get(k) as? JsonPrimitive)?.longOrNull
 fun Message.texts(k: String): Set<String> = (get(k) as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }?.toSet() ?: emptySet()
 
 /** 4 bytes length (big endian), then JSON */

@@ -131,13 +131,15 @@ private fun Home(c: Computer, forget: () -> Unit) {
                 Text(
                     when {
                         !LinkState.connected -> "Not connected"
-                        LinkState.allowed.isEmpty() -> "Nothing yet. On the computer: pairlume allow \"${Phone.name(context)}\" battery"
+                        LinkState.allowed.isEmpty() -> "Nothing yet. On the computer: pairlume allow \"${Phone.name(context)}\" sms"
                         else -> LinkState.allowed.sorted().joinToString(", ")
                     },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
+        Spacer(Modifier.height(12.dp))
+        TextChoices(c.name)
         Spacer(Modifier.height(12.dp))
         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
             Column(Modifier.padding(20.dp)) {
@@ -157,6 +159,47 @@ private fun Home(c: Computer, forget: () -> Unit) {
         confirmButton = { TextButton({ sure = false; forget() }) { Text("Forget") } },
         dismissButton = { TextButton({ sure = false }) { Text("Keep") } },
     )
+}
+
+/** what this phone gives; the computer's own permission comes on top */
+@Composable
+private fun TextChoices(computer: String) {
+    val context = LocalContext.current
+    val choices = remember { Choices(context) }
+    var read by remember { mutableStateOf(choices.read) }
+    var send by remember { mutableStateOf(choices.send) }
+    val askRead = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { got ->
+        // the names from the contacts are nice to have, the texts work without
+        choices.read = Choices.READ.all { got[it] == true || context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+        read = choices.read
+    }
+    val askSend = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { got ->
+        choices.send = got.values.all { it }
+        send = choices.send
+    }
+    LifecycleResumeEffect(Unit) { read = choices.read; send = choices.send; onPauseOrDispose { } }
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
+        Column(Modifier.padding(20.dp)) {
+            Text("Texts", fontWeight = FontWeight.SemiBold)
+            Choice("Show on $computer", "It asks for conversations when you open them there. Nothing is saved.", read) { on ->
+                if (on) askRead.launch(Choices.READ + Manifest.permission.READ_CONTACTS) else { choices.read = false; read = false }
+            }
+            Choice("Send from $computer", "Texts cost what your plan says. At most 8 a minute, never to short numbers.", send) { on ->
+                if (on) askSend.launch(Choices.SEND) else { choices.send = false; send = false }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Choice(what: String, about: String, on: Boolean, change: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(what)
+            Text(about, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        }
+        Switch(on, change, Modifier.semantics { contentDescription = what })
+    }
 }
 
 private fun Context.open(action: String) = try { startActivity(Intent(action)) } catch (_: Exception) { }

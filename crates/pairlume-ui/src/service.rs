@@ -40,6 +40,12 @@ pub mod qobject {
         /// a request (one JSON, see pairlumed::control::Request)
         #[qinvokable]
         fn ask(self: Pin<&mut Service>, json: QString);
+        /// the same, and the answer comes as `replied` with the same tag (an error: with `why` in it)
+        #[qinvokable]
+        #[cxx_name = "askFor"]
+        fn ask_for(self: Pin<&mut Service>, tag: QString, json: QString);
+        #[qsignal]
+        fn replied(self: Pin<&mut Service>, tag: QString, json: QString);
         /// the squares of a QR code: one line per row, 0 and 1
         #[qinvokable]
         fn qr(self: &Service, text: QString) -> QString;
@@ -123,6 +129,19 @@ impl qobject::Service {
                 let why = QString::from(format!("{e:#}").as_str());
                 let _ = qt.queue(move |o| o.failed(why));
             }
+        });
+    }
+
+    fn ask_for(self: Pin<&mut Self>, tag: QString, json: QString) {
+        let qt = self.qt_thread();
+        std::thread::spawn(move || {
+            let r = connect().and_then(|mut s| request(&mut s, &String::from(&json)));
+            let text = match r {
+                Ok(r) => serde_json::to_string(&r).unwrap_or_default(),
+                Err(e) => serde_json::json!({ "ok": false, "why": format!("{e:#}") }).to_string(),
+            };
+            let text = QString::from(text.as_str());
+            let _ = qt.queue(move |o| o.replied(tag, text));
         });
     }
 

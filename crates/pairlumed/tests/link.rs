@@ -243,3 +243,96 @@ async fn control_socket_is_private_and_answers() {
         assert!(line.contains(want), "{ask} -> {line}");
     }
 }
+
+// ---------- texts ----------
+fn thread(snippet: &str) -> pairlume_core::message::Thread {
+    pairlume_core::message::Thread {
+        id: 1,
+        address: "+48 555 010 001".into(),
+        name: "Ola".into(),
+        snippet: snippet.into(),
+        date: 1,
+        unread: 0,
+    }
+}
+
+/// answers one question of the computer with `f`
+async fn answer(l: &mut client::Link, f: impl Fn(u64) -> Msg) -> Msg {
+    loop {
+        let m = next(l).await.unwrap();
+        let req = match &m {
+            Msg::SmsList { req, .. } | Msg::SmsRead { req, .. } | Msg::SmsSend { req, .. } => *req,
+            _ => continue,
+        };
+        send(&mut l.stream, &f(req)).await.unwrap();
+        return m;
+    }
+}
+
+#[tokio::test]
+async fn texts_need_the_permission_both_ways() {
+    let mut pc = Pc::new().await;
+    let id = Identity::generate().unwrap();
+    let mut l = pc.paired(&id).await;
+    let fp = id.fingerprint;
+    let e = pc.d.ask(&fp, Capability::Sms, |req| Msg::SmsList { req, limit: 1, before: None }).await.unwrap_err();
+    assert!(e.to_string().contains("may not use sms"), "{e}");
+    let new = Msg::SmsNew {
+        thread: thread("x"),
+        message: pairlume_core::message::Text { id: 1, out: false, text: "x".into(), date: 1, failed: false },
+    };
+    send(&mut l.stream, &new).await.unwrap();
+    loop {
+        if let Msg::Denied { cap } = next(&mut l).await.unwrap() {
+            assert_eq!(cap, Capability::Sms);
+            break;
+        }
+    }
+    pc.d.allow(&fp, Capability::Sms, true).unwrap();
+    send(&mut l.stream, &new).await.unwrap();
+    pc.wait(|e| matches!(e, Event::Sms { .. }).then_some(())).await;
+}
+
+#[tokio::test]
+async fn texts_are_asked_answered_and_cleaned() {
+    let mut pc = Pc::new().await;
+    let id = Identity::generate().unwrap();
+    let mut l = pc.paired(&id).await;
+    let fp = id.fingerprint;
+    pc.d.allow(&fp, Capability::Sms, true).unwrap();
+    let d = pc.d.clone();
+    let q = tokio::spawn(async move { d.ask(&fp, Capability::Sms, |req| Msg::SmsList { req, limit: 40, before: None }).await });
+    answer(&mut l, |req| Msg::SmsThreads { req, threads: vec![thread("a\u{202e}b\x1b[2J\nc")], more: false }).await;
+    match q.await.unwrap().unwrap() {
+        Msg::SmsThreads { threads, .. } => assert_eq!(threads[0].snippet, "ab[2J\nc"),
+        m => panic!("{m:?}"),
+    }
+    let d = pc.d.clone();
+    let q =
+        tokio::spawn(
+            async move { d.ask(&fp, Capability::Sms, |req| Msg::SmsSend { req, to: "1".into(), text: "hi".into() }).await },
+        );
+    let asked = answer(&mut l, |req| Msg::SmsError { req, reason: "no signal".into() }).await;
+    assert!(matches!(asked, Msg::SmsSend { text, .. } if text == "hi"));
+    assert_eq!(q.await.unwrap().unwrap_err().to_string(), "no signal");
+    // an answer to nothing does no harm
+    send(&mut l.stream, &Msg::SmsSent { req: 999 }).await.unwrap();
+    send(&mut l.stream, &Msg::Ping).await.unwrap();
+    while next(&mut l).await.unwrap() != Msg::Pong {}
+}
+
+#[tokio::test]
+async fn a_question_ends_when_the_phone_goes_away() {
+    let mut pc = Pc::new().await;
+    let id = Identity::generate().unwrap();
+    let l = pc.paired(&id).await;
+    let fp = id.fingerprint;
+    pc.d.allow(&fp, Capability::Sms, true).unwrap();
+    let d = pc.d.clone();
+    let q = tokio::spawn(async move { d.ask(&fp, Capability::Sms, |req| Msg::SmsList { req, limit: 1, before: None }).await });
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    drop(l);
+    let e = timeout(SOON, q).await.expect("it must not wait for the whole time").unwrap().unwrap_err();
+    assert!(e.to_string().contains("went away"), "{e}");
+    assert!(pc.d.ask(&fp, Capability::Sms, |req| Msg::SmsList { req, limit: 1, before: None }).await.is_err());
+}

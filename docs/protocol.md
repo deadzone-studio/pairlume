@@ -70,6 +70,23 @@ does not have is dropped and answered with `denied` (`cap`).
 |---|---|---|
 | phone | `ping`; the computer answers `pong` | |
 | phone | `battery` (`percent` 0 to 100, `charging`) | `battery` |
+| phone | `sms_threads`, `sms_messages`, `sms_sent`, `sms_error`, `sms_new` | `sms` |
+
+### Texts
+
+The computer asks with `req`, its number for the question; the phone answers with the same `req`, or with `sms_error`
+(`reason`). Dates are milliseconds since 1970; `before` (a date, or null) asks for older ones.
+
+| the computer asks | the phone answers |
+|---|---|
+| `sms_list` (`limit`, `before`) | `sms_threads` (`threads`, newest first, `more`) |
+| `sms_read` (`thread`, `limit`, `before`) | `sms_messages` (`thread`, `messages`, oldest first, `more`) |
+| `sms_send` (`to`, `text`) | `sms_sent` when the network took it |
+
+A conversation: `id`, `address`, `name` (empty when it is not in the contacts), `snippet`, `date`, `unread`. A text: `id`,
+`out`, `text`, `date`, `failed`. `sms_new` (`thread`, `message`) comes by itself. Besides the computer's permission the
+phone has its own two switches, for reading and for sending; it sends at most 8 a minute and 150 a day, and only to
+numbers of 7 to 15 digits. When no answer comes in time the text may have gone out: the computer must not say it failed.
 
 The phone sends something at least every 15 s; after 45 s of silence the computer closes the connection. A second
 connection of the same phone replaces the first.

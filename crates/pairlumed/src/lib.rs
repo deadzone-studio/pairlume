@@ -7,7 +7,7 @@ pub mod server;
 use anyhow::{Context, Result, bail};
 use pairlume_core::{
     identity::{Fingerprint, Identity},
-    message::{Capability, Msg},
+    message::{Capability, Msg, Text, Thread},
     pairing::{self, QrCode},
     store::Store,
 };
@@ -25,6 +25,8 @@ use tokio::{
 };
 
 pub const PAIRING_TIME: Duration = Duration::from_secs(120);
+/// how long a phone may take for an answer
+pub const ASK_TIME: Duration = Duration::from_secs(20);
 
 /// why a pairing window is gone; the windows have words for it, the log has the details
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,6 +79,11 @@ pub enum Event {
         cap: Capability,
         on: bool,
     },
+    Sms {
+        id: Fingerprint,
+        thread: Thread,
+        message: Text,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -94,6 +101,8 @@ struct Session {
     task: AbortHandle,
     out: mpsc::Sender<Msg>,
     battery: Option<(u8, bool)>,
+    /// questions the phone has not answered yet
+    asked: BTreeMap<u64, oneshot::Sender<Msg>>,
 }
 
 /// the minutes in which an unknown phone may pair. Digits and secret are for one try
@@ -220,6 +229,34 @@ impl Daemon {
         }
         self.tell(Event::Unpaired { id: *fp });
         Ok(())
+    }
+    /// asks a phone and waits for the answer
+    pub async fn ask(&self, fp: &Fingerprint, cap: Capability, make: impl FnOnce(u64) -> Msg) -> Result<Msg> {
+        let (tx, rx) = oneshot::channel();
+        let (req, session) = {
+            let mut g = self.lock();
+            let d = g.store.get(fp).context("this device is not paired")?;
+            if !d.allowed.contains(&cap) {
+                bail!("{} may not use {cap}: pairlume allow \"{}\" {cap}", d.name, d.name);
+            }
+            g.counter += 1;
+            let req = g.counter;
+            let s = g.sessions.get_mut(fp).context("the phone is not connected")?;
+            if s.asked.len() >= 64 {
+                bail!("the phone is busy");
+            }
+            s.out.try_send(make(req)).ok().context("the phone is busy")?;
+            s.asked.insert(req, tx);
+            (req, s.number)
+        };
+        let r = tokio::time::timeout(ASK_TIME, rx).await;
+        if let Some(s) = self.lock().sessions.get_mut(fp).filter(|s| s.number == session) {
+            s.asked.remove(&req);
+        }
+        match r.context("the phone did not answer")?.context("the phone went away")? {
+            Msg::SmsError { reason, .. } => bail!(reason),
+            m => Ok(m),
+        }
     }
     pub fn allow(&self, fp: &Fingerprint, cap: Capability, on: bool) -> Result<()> {
         let mut g = self.lock();

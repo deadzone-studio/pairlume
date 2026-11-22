@@ -23,18 +23,7 @@ Window {
         onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors.json: " + e) } }
         Component.onCompleted: start()
     }
-    // --shots FOLDER: a picture of every step, for the README (works without a screen)
-    readonly property int shots: Qt.application.arguments.indexOf("--shots")
-    Timer {
-        id: shot
-        interval: 1500
-        onTriggered: scene.grabToImage(r => r.saveToFile(Qt.application.arguments[win.shots + 1] + "/" + card.step + "-" + card.how + ".png"))
-    }
-    Connections {
-        target: win.shots > 0 ? card : null
-        function onStepChanged() { shot.restart() }
-        function onHowChanged() { shot.restart() }
-    }
+    Shots { of: scene; what: card.step + "-" + card.how }
 
     Item {
         id: scene

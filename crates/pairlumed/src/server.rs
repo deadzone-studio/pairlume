@@ -156,7 +156,7 @@ fn start_session(d: &Arc<Daemon>, s: Stream, fp: Fingerprint) -> Result<()> {
     out.try_send(Msg::Allowed { caps: dev.allowed }).expect("an empty queue");
     let task = tokio::spawn(run_session(d.clone(), s, fp, number, rx)).abort_handle();
     // the same phone again (it lost the Wi-Fi): the old connection goes
-    if let Some(old) = g.sessions.insert(fp, Session { number, task, out, battery: None }) {
+    if let Some(old) = g.sessions.insert(fp, Session { number, task, out, battery: None, asked: Default::default() }) {
         old.task.abort();
     }
     drop(g);
@@ -213,6 +213,18 @@ fn handle(d: &Daemon, fp: Fingerprint, number: u64, m: Msg) -> Result<()> {
             s.battery = Some((percent, charging));
             drop(g);
             d.tell(Event::Battery { id: fp, percent, charging });
+        }
+        // an answer nobody waits for any more is dropped
+        m if m.answers().is_some() => {
+            if let Some(tx) = m.answers().and_then(|req| s.asked.remove(&req)) {
+                let _ = tx.send(m.clean());
+            }
+        }
+        m @ Msg::SmsNew { .. } => {
+            drop(g);
+            if let Msg::SmsNew { thread, message } = m.clean() {
+                d.tell(Event::Sms { id: fp, thread, message });
+            }
         }
         Msg::Pong | Msg::Unknown => {}
         m => bail!("unexpected message: {m:?}"),

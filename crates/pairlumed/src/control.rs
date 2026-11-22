@@ -2,7 +2,7 @@
 //! The local socket for windows and the command line: one JSON per line. Only the same user may connect.
 use crate::{Daemon, DeviceStatus, Event, PAIRING_TIME};
 use anyhow::{Context, Result, bail};
-use pairlume_core::message::Capability;
+use pairlume_core::message::{Capability, Msg};
 use serde::{Deserialize, Serialize};
 use std::{
     os::unix::fs::{MetadataExt, PermissionsExt},
@@ -32,6 +32,20 @@ pub enum Request {
     Unpair {
         device: String,
     },
+    SmsThreads {
+        device: String,
+        before: Option<i64>,
+    },
+    SmsMessages {
+        device: String,
+        thread: i64,
+        before: Option<i64>,
+    },
+    SmsSend {
+        device: String,
+        to: String,
+        text: String,
+    },
     /// events from now on, until the connection is closed
     Watch,
 }
@@ -45,6 +59,8 @@ pub struct Reply {
     pub devices: Option<Vec<DeviceStatus>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pairing: Option<Event>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub answer: Option<Msg>,
 }
 
 const MAX_LINE: u64 = 64 * 1024;
@@ -101,7 +117,7 @@ async fn client(d: Arc<Daemon>, s: UnixStream) -> Result<()> {
                     }
                 }
             }
-            Ok(req) => run(&d, req),
+            Ok(req) => run(&d, req).await,
             Err(e) => Err(e.into()),
         };
         let rep = req.unwrap_or_else(|e| Reply { error: Some(format!("{e:#}")), ..Default::default() });
@@ -115,7 +131,7 @@ async fn write<T: Serialize>(w: &mut (impl AsyncWriteExt + Unpin), v: &T) -> Res
     Ok(w.write_all(&b).await?)
 }
 
-fn run(d: &Arc<Daemon>, r: Request) -> Result<Reply> {
+async fn run(d: &Arc<Daemon>, r: Request) -> Result<Reply> {
     let mut out = Reply { ok: true, ..Default::default() };
     match r {
         Request::Status => out.devices = Some(d.status()),
@@ -124,6 +140,21 @@ fn run(d: &Arc<Daemon>, r: Request) -> Result<Reply> {
         Request::Answer { yes } => d.answer(yes)?,
         Request::Allow { device, cap, on } => d.allow(&d.find(&device)?, cap, on)?,
         Request::Unpair { device } => d.unpair(&d.find(&device)?)?,
+        Request::SmsThreads { device, before } => {
+            let fp = d.find(&device)?;
+            out.answer = Some(d.ask(&fp, Capability::Sms, |req| Msg::SmsList { req, limit: 40, before }).await?);
+        }
+        Request::SmsMessages { device, thread, before } => {
+            let fp = d.find(&device)?;
+            out.answer = Some(d.ask(&fp, Capability::Sms, |req| Msg::SmsRead { req, thread, limit: 50, before }).await?);
+        }
+        Request::SmsSend { device, to, text } => {
+            let fp = d.find(&device)?;
+            if text.trim().is_empty() || text.chars().count() > 2000 {
+                bail!("a text has 1 to 2000 characters");
+            }
+            out.answer = Some(d.ask(&fp, Capability::Sms, |req| Msg::SmsSend { req, to, text }).await?);
+        }
         Request::Watch => unreachable!("handled by client()"),
     }
     Ok(out)

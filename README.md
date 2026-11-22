@@ -4,8 +4,8 @@ Your Android phone and your Hyprland desktop as one: texts, calls, notifications
 
 ![Pairing: shake the phone, scan a code, compare six digits, connected](docs/img/pairing.png)
 
-> **Early days.** Pairing, reconnecting and the battery work between a computer and an Android phone. That is all so
-> far. Nothing here is ready for daily use.
+> **Early days.** Pairing and reconnecting work between a computer and an Android phone, texts are being tried. Nothing
+> here is ready for daily use.
 
 ## Where it is
 
@@ -13,7 +13,7 @@ Your Android phone and your Hyprland desktop as one: texts, calls, notifications
 |---|---|---|
 | 0 | Project, protocol, tests | done |
 | 1 | Pairing (shake, QR, digits), reconnecting, battery | works, being tried on real phones |
-| 2 | Texts: window, panel, chat bubbles | planned |
+| 2 | Texts: window, panel, chat bubbles | works with the pretend phone, being tried on real ones |
 | 3 | Calls | planned |
 | 4 | Notifications in three styles, colors from the wallpaper, glass, animations | planned |
 | **0.1** | **first release** | |
@@ -45,8 +45,13 @@ for Hyprland ([colors and glass](docs/hyprland.md)):
 
 ```sh
 cargo build -p pairlume-ui
-target/debug/pairlume-ui
+target/debug/pairlume-ui               # pairing
+target/debug/pairlume-ui messages      # texts: a window
+target/debug/pairlume-ui panel         # ... from the edge of the screen
+target/debug/pairlume-ui bubbles       # ... as faces at the edge
 ```
+
+![Texts as a window, a panel and bubbles](docs/img/texts.png)
 
 The Android app (Android 10 or newer) needs JDK 21 and the Android SDK (platform 36):
 

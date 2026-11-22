@@ -25,6 +25,7 @@ import dev.pairlume.core.message
 import dev.pairlume.core.texts
 import dev.pairlume.core.type
 import java.net.InetSocketAddress
+import java.util.concurrent.Executors
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 
@@ -42,6 +43,9 @@ class LinkService : Service() {
     @Volatile private var link: Link? = null
     @Volatile private var battery: Message? = null
     @Volatile private var seenAt: InetSocketAddress? = null
+    private val texts by lazy { Texts(applicationContext) }
+    // one at a time, in the order the computer asked
+    private val answers = Executors.newSingleThreadExecutor()
     private lateinit var discovery: Discovery
 
     private val power = object : BroadcastReceiver() {
@@ -62,6 +66,7 @@ class LinkService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        current = this
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel("link", getString(R.string.link_channel), NotificationManager.IMPORTANCE_LOW))
         startForeground(1, note(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
@@ -82,6 +87,8 @@ class LinkService : Service() {
 
     override fun onDestroy() {
         running = false
+        if (current === this) current = null
+        answers.shutdown()
         wake.release()
         link?.let { l -> Thread { l.close() }.start() }
         discovery.stop()
@@ -170,6 +177,12 @@ class LinkService : Service() {
                         // a battery that was refused before is told again
                         battery?.let { if ("battery" in caps) l.wire.send(it) }
                     }
+                    "sms_list", "sms_read", "sms_send" -> {
+                        val q = m
+                        answers.execute {
+                            try { texts.answer(q)?.let(l.wire::send) } catch (_: Exception) { l.close() }
+                        }
+                    }
                 }
                 m = l.wire.receive()
             }
@@ -179,7 +192,14 @@ class LinkService : Service() {
         }
     }
 
+    private fun tell(from: String, body: String) {
+        val l = link ?: return
+        if (running) answers.execute { try { texts.came(from, body)?.let(l.wire::send) } catch (_: Exception) { } }
+    }
+
     companion object {
+        @Volatile private var current: LinkService? = null
+        fun textCame(from: String, body: String) { current?.tell(from, body) }
         fun start(c: Context) { if (Saved(c).computer != null) c.startForegroundService(Intent(c, LinkService::class.java)) }
         fun stop(c: Context) { c.stopService(Intent(c, LinkService::class.java)) }
     }

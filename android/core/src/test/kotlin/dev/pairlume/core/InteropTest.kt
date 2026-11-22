@@ -145,6 +145,30 @@ class InteropTest {
     }
 
     @Test
+    fun textsAreAskedAndAnswered() {
+        val id = newPhone()
+        Control().use { ctl ->
+            val digits = ctl.open()["digits"]!!.jsonPrimitive.content
+            Link.open(id, "Kotlin phone", to, null).use { l ->
+                l.pairing().digits(digits)
+                l.wire.expect("allowed")
+                ctl.ask("""{"cmd":"allow","device":"Kotlin phone","cap":"sms","on":true}""")
+                l.wire.expect("allowed")
+                ctl.send("""{"cmd":"sms_threads","device":"Kotlin phone","before":null}""")
+                val q = l.wire.expect("sms_list")
+                assertEquals(null, q.maybeLong("before"))
+                val t = buildJsonObject { put("id", 7L); put("address", "+48 555 010 001"); put("name", "Zażółć"); put("snippet", "hej \uD83D\uDE04"); put("date", 1763800000000L); put("unread", 2) }
+                l.wire.send(JsonObject(message("sms_threads", "req" to q.longNumber("req"), "more" to false) + ("threads" to JsonArray(listOf(t)))))
+                assertEquals(t, ctl.line()["answer"]!!.jsonObject["threads"]!!.jsonArray.single())
+                ctl.send("""{"cmd":"sms_send","device":"Kotlin phone","to":"1","text":"x"}""")
+                val s = l.wire.expect("sms_send")
+                l.wire.send(message("sms_error", "req" to s.longNumber("req"), "reason" to "off"))
+                assertEquals("off", ctl.line()["error"]!!.jsonPrimitive.content)
+            }
+        }
+    }
+
+    @Test
     fun refusedHereAndNotPairing() {
         Control().use { ctl ->
             ctl.open()
@@ -156,6 +180,25 @@ class InteropTest {
 }
 
 class PiecesTest {
+    @Test
+    fun textsAreLimited() {
+        var t = 0L
+        val r = SmsRate(3, 5) { t }
+        assertEquals(listOf(true, true, true, false), List(4) { r.take() })
+        t += 60_001
+        assertEquals(listOf(true, true, false), List(3) { r.take() })
+        t += 60_001
+        assertFalse("the day is full", r.take())
+        t += 86_400_000
+        assertTrue(r.take())
+    }
+
+    @Test
+    fun onlyPhoneNumbers() {
+        listOf("+48 555 010 001", "555010001", "(555) 010-0001").forEach { assertTrue(it, SmsRate.isNumber(it)) }
+        listOf("", "7248", "112", "*100#", "PARCEL", "+48+555010001", "5550+10001", "123456789012345678", "555010001;9", "٥٥٥٠١٠٠٠١").forEach { assertFalse(it, SmsRate.isNumber(it)) }
+    }
+
     @Test
     fun hexAndNames() {
         assertArrayEquals(byteArrayOf(0, 1, -2, -1), unhex("0001feff"))

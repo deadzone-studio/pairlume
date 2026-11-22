@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+mod sms;
+
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use pairlume_core::{
@@ -9,7 +11,7 @@ use pairlume_core::{
     store::Store,
     wire::{recv, send},
 };
-use std::{net::SocketAddr, path::PathBuf, time::Duration};
+use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 
 /// A pretend phone: pairs with pairlumed and tells it about a battery that does not exist
 #[derive(Parser)]
@@ -65,11 +67,27 @@ async fn ask(code: String, yes: bool) -> bool {
 }
 
 async fn stay(l: Link, battery: u8, seconds: Option<u64>) -> Result<()> {
-    let (mut r, mut w) = tokio::io::split(l.stream);
+    let (mut r, w) = tokio::io::split(l.stream);
+    let w = Arc::new(tokio::sync::Mutex::new(w));
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_millis() as i64;
+    let mut texts = sms::Sms::new(now);
     let read = async {
         loop {
             match recv(&mut r).await? {
                 Msg::Pong => {}
+                m @ (Msg::SmsList { .. } | Msg::SmsRead { .. } | Msg::SmsSend { .. }) => {
+                    let (answer, later) = texts.answer(m);
+                    if let Some(a) = answer {
+                        send(&mut *w.lock().await, &a).await?;
+                    }
+                    if let Some(x) = later {
+                        let w = w.clone();
+                        tokio::spawn(async move {
+                            tokio::time::sleep(Duration::from_millis(1500)).await;
+                            let _ = send(&mut *w.lock().await, &x).await;
+                        });
+                    }
+                }
                 m => println!("{m:?}"),
             }
         }
@@ -78,8 +96,11 @@ async fn stay(l: Link, battery: u8, seconds: Option<u64>) -> Result<()> {
     };
     let write = async {
         loop {
-            send(&mut w, &Msg::Ping).await?;
-            send(&mut w, &Msg::Battery { percent: battery, charging: false }).await?;
+            {
+                let mut w = w.lock().await;
+                send(&mut *w, &Msg::Ping).await?;
+                send(&mut *w, &Msg::Battery { percent: battery, charging: false }).await?;
+            }
             tokio::time::sleep(Duration::from_secs(10)).await;
         }
         #[allow(unreachable_code)]
