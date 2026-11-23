@@ -1,0 +1,10 @@
+[Unit]
+Description=Pairlume: your phone and this desktop as one
+
+[Service]
+ExecStart=%h/.local/bin/pairlumed
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

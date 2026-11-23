@@ -30,6 +30,15 @@ Your Android phone and your Hyprland desktop as one: texts, calls, notifications
 
 The details are in [docs/protocol.md](docs/protocol.md).
 
+## Install
+
+From the [releases](https://github.com/M4rtwy/pairlume/releases): unpack `pairlume-…-linux-x86_64.zip` and run
+`./install.sh` (it puts the programs in `~/.local/bin` and starts the service with your session; `./install.sh --remove`
+takes it away). Install `Pairlume-….apk` on the phone. Releases are early previews until 0.1.
+
+The phone app is signed with this key (SHA-256 of the certificate):
+`50:11:B3:93:23:01:22:35:66:25:F8:4F:6B:B6:89:08:6B:BB:A9:7D:DD:7A:4B:02:9E:3C:C0:C4:D2:C3:40:A3`
+
 ## Try it
 
 Needs a recent stable Rust.

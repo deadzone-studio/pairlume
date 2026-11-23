@@ -1,6 +1,14 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+// the release key lives outside the repository: ~/.config/pairlume-signing/keystore.properties, or PAIRLUME_SIGNING
+val releaseKey = Properties().also { p ->
+    val f = file(System.getenv("PAIRLUME_SIGNING") ?: "${System.getProperty("user.home")}/.config/pairlume-signing/keystore.properties")
+    if (f.isFile) f.inputStream().use { p.load(it) }
 }
 
 android {
@@ -14,8 +22,17 @@ android {
         versionCode = 1
         versionName = "0.0.1"
     }
+    signingConfigs {
+        if (releaseKey.getProperty("storeFile") != null) create("release") {
+            storeFile = file(releaseKey.getProperty("storeFile"))
+            storePassword = releaseKey.getProperty("storePassword")
+            keyAlias = releaseKey.getProperty("keyAlias")
+            keyPassword = releaseKey.getProperty("keyPassword")
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
