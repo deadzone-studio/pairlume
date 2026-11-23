@@ -229,8 +229,9 @@ private fun VoiceRow(computer: String) {
     val context = LocalContext.current
     val address = LinkState.bluetooth
     var paired by remember { mutableStateOf(false) }
+    var bonded by remember { mutableStateOf(false) }
     var asked by remember { mutableStateOf(false) }
-    fun look() { paired = address != null && Voice.paired(context, address) }
+    fun look() { paired = address != null && Voice.connected(context, address); bonded = address != null && Voice.bonded(context, address) }
     LaunchedEffect(address, asked) { while (true) { look(); delay(1500) } }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         if (ok && address != null) asked = Voice.pair(context, address)
@@ -241,9 +242,11 @@ private fun VoiceRow(computer: String) {
             Text(
                 when {
                     address == null -> "$computer has no Bluetooth, or is not connected"
-                    paired -> "Ready. Calls you answer there are heard there, through Bluetooth."
+                    paired -> "Connected over Bluetooth. Calls you answer there are heard there."
                     !Voice.on(context) -> "Turn Bluetooth on first"
-                    asked -> "Say yes on both screens: the same code is on $computer"
+                    asked && !bonded -> "Say yes on both screens: the same code is on $computer"
+                    asked -> "Paired. Waiting for $computer to connect"
+                    bonded -> "Paired before, but not connected. Connect pairs it anew"
                     else -> "Talk through the computer's speakers and microphone"
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
