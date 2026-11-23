@@ -2,7 +2,7 @@
 //! The local socket for windows and the command line: one JSON per line. Only the same user may connect.
 use crate::{Daemon, DeviceStatus, Event, PAIRING_TIME};
 use anyhow::{Context, Result, bail};
-use pairlume_core::message::{CallAction, Capability, Msg};
+use pairlume_core::message::{CallAction, Capability, Msg, NotifWhat, Notification};
 use serde::{Deserialize, Serialize};
 use std::{
     os::unix::fs::{MetadataExt, PermissionsExt},
@@ -57,6 +57,25 @@ pub enum Request {
         #[serde(default)]
         number: Option<String>,
     },
+    /// the notifications a phone has now
+    Notifications {
+        device: String,
+    },
+    /// the icon of an app, as the phone sent it
+    NotifIcon {
+        device: String,
+        app: String,
+    },
+    /// dismiss a notification, press a button of it, or answer it
+    Notif {
+        device: String,
+        key: String,
+        what: NotifWhat,
+        #[serde(default)]
+        action: Option<u32>,
+        #[serde(default)]
+        text: Option<String>,
+    },
     /// the codes of Bluetooth pairing are the same, or not
     BtAnswer {
         yes: bool,
@@ -76,6 +95,10 @@ pub struct Reply {
     pub pairing: Option<Event>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub answer: Option<Msg>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notifications: Option<Vec<Notification>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
 }
 
 const MAX_LINE: u64 = 64 * 1024;
@@ -195,6 +218,18 @@ async fn run(d: &Arc<Daemon>, r: Request) -> Result<Reply> {
                 _ => None,
             };
             out.answer = Some(d.ask(&fp, Capability::Calls, |req| Msg::CallDo { req, what, number }).await?);
+        }
+        Request::Notifications { device } => out.notifications = Some(d.notifications(&d.find(&device)?)),
+        Request::NotifIcon { device, app } => out.icon = d.notif_icon(&d.find(&device)?, &app),
+        Request::Notif { device, key, what, action, text } => {
+            let fp = d.find(&device)?;
+            if what == NotifWhat::Reply && text.as_deref().is_none_or(|t| t.trim().is_empty() || t.chars().count() > 2000) {
+                bail!("an answer has 1 to 2000 characters");
+            }
+            if what != NotifWhat::Dismiss && action.is_none() {
+                bail!("which button?");
+            }
+            out.answer = Some(d.ask(&fp, Capability::Notifications, |req| Msg::NotifDo { req, key, what, action, text }).await?);
         }
         Request::BtAnswer { yes } => crate::bluetooth::answer(d, yes)?,
         Request::Watch => unreachable!("handled by client()"),

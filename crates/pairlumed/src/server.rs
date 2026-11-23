@@ -159,8 +159,19 @@ fn start_session(d: &Arc<Daemon>, s: Stream, fp: Fingerprint) -> Result<()> {
     }
     let task = tokio::spawn(run_session(d.clone(), s, fp, number, rx)).abort_handle();
     // the same phone again (it lost the Wi-Fi): the old connection goes
-    if let Some(old) = g.sessions.insert(fp, Session { number, task, out, battery: None, asked: Default::default(), call: None })
-    {
+    if let Some(old) = g.sessions.insert(
+        fp,
+        Session {
+            number,
+            task,
+            out,
+            battery: None,
+            asked: Default::default(),
+            call: None,
+            notifs: Vec::new(),
+            icons: Default::default(),
+        },
+    ) {
         old.task.abort();
     }
     drop(g);
@@ -240,6 +251,28 @@ fn handle(d: &Arc<Daemon>, fp: Fingerprint, number: u64, m: Msg) -> Result<()> {
             if let Msg::Call { state, number, name, missed, png } = m {
                 d.tell(Event::Call { id: fp, state, number, name, missed, png });
             }
+        }
+        m @ Msg::Notif(_) => {
+            let Msg::Notif(mut n) = m.clean() else { unreachable!() };
+            let event = n.clone();
+            if let Some(icon) = n.icon.take()
+                && (s.icons.len() < 200 || s.icons.contains_key(&n.app))
+            {
+                s.icons.insert(n.app.clone(), icon);
+            }
+            s.notifs.retain(|x| x.key != n.key);
+            s.notifs.push(n);
+            if s.notifs.len() > crate::NOTIFS {
+                s.notifs.remove(0);
+            }
+            drop(g);
+            d.tell(Event::Notif { id: fp, notif: event });
+        }
+        m @ Msg::NotifGone { .. } => {
+            let Msg::NotifGone { key } = m.clean() else { unreachable!() };
+            s.notifs.retain(|x| x.key != key);
+            drop(g);
+            d.tell(Event::NotifGone { id: fp, key });
         }
         Msg::BtPair => {
             drop(g);

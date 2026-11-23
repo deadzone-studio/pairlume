@@ -76,6 +76,68 @@ pub enum CallAction {
     Dial,
 }
 
+/// what the computer asks of a notification
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NotifWhat {
+    /// swipe it away
+    Dismiss,
+    /// press one of its buttons (`action`)
+    Action,
+    /// answer it with `text` through its reply button (`action`)
+    Reply,
+}
+
+/// a button of a notification
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NotifAction {
+    pub title: String,
+    /// it takes a written answer
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub reply: bool,
+}
+
+/// a notification of the phone
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Notification {
+    /// the phone's own name for it, the same while it is updated
+    pub key: String,
+    /// the package of the app (com.whatsapp)
+    pub app: String,
+    /// the app's name (WhatsApp)
+    #[serde(default)]
+    pub app_name: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub text: String,
+    /// milliseconds since 1970
+    #[serde(default)]
+    pub when: i64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub actions: Vec<NotifAction>,
+    /// the app's icon (PNG, base64), sent with the first notification of an app
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+impl Notification {
+    fn clean(&mut self) {
+        self.key = self.key.chars().filter(|c| !c.is_control()).take(300).collect();
+        self.app = self.app.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '.' || *c == '_').take(120).collect();
+        self.app_name = crate::store::clean_name(&self.app_name);
+        self.title = crate::store::clean_name(&self.title).chars().take(200).collect();
+        self.text = clean_text(&self.text).chars().take(2000).collect();
+        self.actions.truncate(3);
+        for a in &mut self.actions {
+            a.title = crate::store::clean_name(&a.title).chars().take(40).collect();
+        }
+        if self.icon.as_ref().is_some_and(|p| !Face { address: String::new(), png: p.clone() }.sound()) {
+            self.icon = None;
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "t", rename_all = "snake_case")]
 pub enum Msg {
@@ -180,6 +242,31 @@ pub enum Msg {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         png: Option<String>,
     },
+    // ---- notifications
+    /// a notification came, or changed
+    Notif(Notification),
+    /// it is gone from the phone
+    NotifGone {
+        key: String,
+    },
+    NotifDo {
+        req: u64,
+        key: String,
+        what: NotifWhat,
+        /// which button
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        action: Option<u32>,
+        /// the answer
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        text: Option<String>,
+    },
+    NotifDone {
+        req: u64,
+    },
+    NotifError {
+        req: u64,
+        reason: String,
+    },
     /// the computer: its Bluetooth address, for the voice of calls
     Bluetooth {
         address: String,
@@ -281,7 +368,9 @@ impl Msg {
             | Self::SmsSent { req }
             | Self::SmsError { req, .. }
             | Self::CallDone { req }
-            | Self::CallError { req, .. } => Some(*req),
+            | Self::CallError { req, .. }
+            | Self::NotifDone { req }
+            | Self::NotifError { req, .. } => Some(*req),
             _ => None,
         }
     }
@@ -296,7 +385,11 @@ impl Msg {
                 message.clean();
             }
             Self::SmsFaces { faces, .. } => faces.retain(Face::sound),
-            Self::SmsError { reason, .. } | Self::CallError { reason, .. } => *reason = crate::store::clean_name(reason),
+            Self::SmsError { reason, .. } | Self::CallError { reason, .. } | Self::NotifError { reason, .. } => {
+                *reason = crate::store::clean_name(reason)
+            }
+            Self::Notif(n) => n.clean(),
+            Self::NotifGone { key } => *key = key.chars().filter(|c| !c.is_control()).take(300).collect(),
             Self::Call { number, name, png, .. } => {
                 *number = crate::store::clean_name(number).chars().take(40).collect();
                 *name = crate::store::clean_name(name);
@@ -320,6 +413,9 @@ impl Msg {
             | Self::SmsError { .. }
             | Self::SmsNew { .. } => Some(Capability::Sms),
             Self::Call { .. } | Self::CallDone { .. } | Self::CallError { .. } | Self::BtPair => Some(Capability::Calls),
+            Self::Notif(_) | Self::NotifGone { .. } | Self::NotifDone { .. } | Self::NotifError { .. } => {
+                Some(Capability::Notifications)
+            }
             _ => None,
         }
     }

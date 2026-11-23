@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 mod call;
+mod notif;
 mod sms;
 
 use anyhow::{Context, Result};
@@ -54,6 +55,9 @@ enum Cmd {
         /// Emma calls after this many seconds, and rings for 12
         #[arg(long)]
         ring: Option<u64>,
+        /// send three notifications after this many seconds
+        #[arg(long)]
+        notify: Option<u64>,
     },
 }
 
@@ -70,12 +74,23 @@ async fn ask(code: String, yes: bool) -> bool {
     matches!(line.await, Ok(Ok(l)) if l.trim().eq_ignore_ascii_case("y"))
 }
 
-async fn stay(l: Link, battery: u8, seconds: Option<u64>, ring: Option<u64>) -> Result<()> {
+async fn stay(l: Link, battery: u8, seconds: Option<u64>, ring: Option<u64>, notify: Option<u64>) -> Result<()> {
     let (mut r, w) = tokio::io::split(l.stream);
     let w = Arc::new(tokio::sync::Mutex::new(w));
     let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_millis() as i64;
     let mut texts = sms::Sms::new(now);
     let calls = Arc::new(tokio::sync::Mutex::new(call::Calls::default()));
+    let notifs = Arc::new(tokio::sync::Mutex::new(notif::Notifs::new(now)));
+    if let Some(after) = notify {
+        let (w, notifs) = (w.clone(), notifs.clone());
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(after)).await;
+            let all = notifs.lock().await.all();
+            for m in all {
+                let _ = send(&mut *w.lock().await, &m).await;
+            }
+        });
+    }
     if let Some(after) = ring {
         let (w, calls) = (w.clone(), calls.clone());
         tokio::spawn(async move {
@@ -104,6 +119,12 @@ async fn stay(l: Link, battery: u8, seconds: Option<u64>, ring: Option<u64>) -> 
                             tokio::time::sleep(Duration::from_millis(1500)).await;
                             let _ = send(&mut *w.lock().await, &x).await;
                         });
+                    }
+                }
+                m @ Msg::NotifDo { .. } => {
+                    let out = notifs.lock().await.answer(m);
+                    for x in out {
+                        send(&mut *w.lock().await, &x).await?;
                     }
                 }
                 m @ Msg::CallDo { .. } => {
@@ -148,11 +169,11 @@ async fn main() -> Result<()> {
         Cmd::Shake { addr, yes } => client::pair_shake(&id, &a.name, addr, |c| ask(c, yes)).await?,
         Cmd::Digits { addr, digits } => client::pair_digits(&id, &a.name, addr, &digits).await?,
         Cmd::Qr { uri } => client::pair_qr(&id, &a.name, &QrCode::parse(&uri)?).await?,
-        Cmd::Run { addr, battery, seconds, ring } => {
+        Cmd::Run { addr, battery, seconds, ring, notify } => {
             let known: Option<Fingerprint> = store.iter().next().map(|(f, _)| *f);
             let l = client::connect(&id, &a.name, addr, Some(known.context("not paired yet")?)).await?;
             println!("Connected to {}", l.name);
-            return stay(l, battery, seconds, ring).await;
+            return stay(l, battery, seconds, ring, notify).await;
         }
     };
     store.add(l.computer, &l.name)?;

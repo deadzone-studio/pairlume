@@ -421,3 +421,76 @@ fn only_phone_numbers_are_dialed() {
         assert!(dialable(no).is_err(), "{no}");
     }
 }
+
+// ---------- notifications ----------
+#[tokio::test]
+async fn notifications_need_the_permission_are_kept_and_cleaned() {
+    use pairlume_core::message::{NotifAction, NotifWhat, Notification};
+    let mut pc = Pc::new().await;
+    let id = Identity::generate().unwrap();
+    let mut l = pc.paired(&id).await;
+    let fp = id.fingerprint;
+    let n = |key: &str, title: &str| Notification {
+        key: key.into(),
+        app: "org.example.chat; rm -rf".into(),
+        app_name: "Chat".into(),
+        title: title.into(),
+        text: "hi\u{202e}".into(),
+        when: 1,
+        actions: vec![NotifAction { title: "Reply".into(), reply: true }],
+        icon: Some("iVBORw0KGgoAAA=".into()),
+    };
+    send(&mut l.stream, &Msg::Notif(n("a", "Emma"))).await.unwrap();
+    loop {
+        if let Msg::Denied { cap } = next(&mut l).await.unwrap() {
+            assert_eq!(cap, Capability::Notifications);
+            break;
+        }
+    }
+    assert!(pc.d.notifications(&fp).is_empty());
+    pc.d.allow(&fp, Capability::Notifications, true).unwrap();
+    send(&mut l.stream, &Msg::Notif(n("a", "Emma\x1b[2J"))).await.unwrap();
+    let got = pc
+        .wait(|e| match e {
+            Event::Notif { notif, .. } => Some(notif.clone()),
+            _ => None,
+        })
+        .await;
+    assert_eq!(got.title, "Emma[2J");
+    assert_eq!(got.text, "hi");
+    assert_eq!(got.app, "org.example.chatrmrf");
+    // the icon is kept apart, the list has none
+    assert_eq!(pc.d.notifications(&fp)[0].icon, None);
+    assert!(pc.d.notif_icon(&fp, "org.example.chatrmrf").is_some());
+    // the same key again replaces it
+    send(&mut l.stream, &Msg::Notif(n("a", "Emma"))).await.unwrap();
+    send(&mut l.stream, &Msg::Notif(n("b", "Mom"))).await.unwrap();
+    pc.wait(|e| matches!(e, Event::Notif { notif, .. } if notif.key == "b").then_some(())).await;
+    assert_eq!(pc.d.notifications(&fp).len(), 2);
+    send(&mut l.stream, &Msg::NotifGone { key: "a".into() }).await.unwrap();
+    pc.wait(|e| matches!(e, Event::NotifGone { .. }).then_some(())).await;
+    assert_eq!(pc.d.notifications(&fp).len(), 1);
+    // dismissing goes to the phone, and its error comes back
+    let d = pc.d.clone();
+    let q = tokio::spawn(async move {
+        d.ask(&fp, Capability::Notifications, |req| Msg::NotifDo {
+            req,
+            key: "b".into(),
+            what: NotifWhat::Dismiss,
+            action: None,
+            text: None,
+        })
+        .await
+    });
+    loop {
+        if let Msg::NotifDo { req, key, .. } = next(&mut l).await.unwrap() {
+            assert_eq!(key, "b");
+            send(&mut l.stream, &Msg::NotifError { req, reason: "gone".into() }).await.unwrap();
+            break;
+        }
+    }
+    assert_eq!(q.await.unwrap().unwrap_err().to_string(), "gone");
+    // taking the permission back forgets them
+    pc.d.allow(&fp, Capability::Notifications, false).unwrap();
+    assert!(pc.d.notifications(&fp).is_empty());
+}

@@ -129,6 +129,11 @@ impl Sms {
     }
 }
 
+/// Mom's picture, as an app icon
+pub fn mom() -> String {
+    base64(include_bytes!("../art/mom.png"))
+}
+
 /// Emma's picture, for her call
 pub fn emma() -> String {
     base64(include_bytes!("../art/emma.png"))

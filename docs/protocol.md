@@ -72,6 +72,7 @@ does not have is dropped and answered with `denied` (`cap`).
 | phone | `battery` (`percent` 0 to 100, `charging`) | `battery` |
 | phone | `sms_threads`, `sms_messages`, `sms_faces`, `sms_sent`, `sms_error`, `sms_new` | `sms` |
 | phone | `call`, `call_done`, `call_error` | `calls` |
+| phone | `notif`, `notif_gone`, `notif_done`, `notif_error` | `notifications` |
 
 ### Texts
 
@@ -99,6 +100,16 @@ and `number` for `dial`); the phone answers `call_done` or `call_error` (`reason
 the one there is. The computer dials only numbers of 3 to 15 digits, without `*` or `#`. Besides the computer's
 permission the phone has its own two switches: show calls there, and answer and make them from there. The voice stays on
 the phone.
+
+### Notifications
+
+`notif` comes by itself when a notification appears or changes: `key` (the phone's name for it, the same while it is
+updated), `app` (the package), `app_name`, `title`, `text`, `when`, `actions` (at most 3: `title`, and `reply` when the
+button takes a written answer) and `icon`, the app's icon (PNG, base64, at most 48 KB) with the first notification of an
+app. `notif_gone` (`key`) says it is gone. The computer asks `notif_do` (`req`, `key`, `what`: `dismiss`, `action` or
+`reply`, `action`: the number of the button, `text`: the answer); the phone answers `notif_done` or `notif_error`
+(`reason`). The phone sends no notification that is ongoing (music, a running call, its own), nor one an app marks as
+secret on the lock screen, and the owner of the phone can leave apps out.
 
 The phone sends something at least every 15 s; after 45 s of silence the computer closes the connection. A second
 connection of the same phone replaces the first.

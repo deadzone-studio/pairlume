@@ -8,7 +8,7 @@ pub mod server;
 use anyhow::{Context, Result, bail};
 use pairlume_core::{
     identity::{Fingerprint, Identity},
-    message::{CallState, Capability, Msg, Text, Thread},
+    message::{CallState, Capability, Msg, Notification, Text, Thread},
     pairing::{self, QrCode},
     store::Store,
 };
@@ -85,6 +85,16 @@ pub enum Event {
         thread: Thread,
         message: Text,
     },
+    /// a notification of the phone came or changed (its app's icon only the first time)
+    Notif {
+        id: Fingerprint,
+        #[serde(flatten)]
+        notif: Notification,
+    },
+    NotifGone {
+        id: Fingerprint,
+        key: String,
+    },
     /// Bluetooth for calls: is the same code on the phone?
     BtCode {
         id: Fingerprint,
@@ -134,7 +144,14 @@ struct Session {
     /// questions the phone has not answered yet
     asked: BTreeMap<u64, oneshot::Sender<Msg>>,
     call: Option<CallNow>,
+    /// the notifications there are now, newest last, without icons
+    notifs: Vec<Notification>,
+    /// the icons of the apps, by package
+    icons: BTreeMap<String, String>,
 }
+
+/// how many notifications of a phone are kept for windows that open later
+pub const NOTIFS: usize = 60;
 
 /// the minutes in which an unknown phone may pair. Digits and secret are for one try
 struct Window {
@@ -291,9 +308,19 @@ impl Daemon {
             s.asked.remove(&req);
         }
         match r.context("the phone did not answer")?.context("the phone went away")? {
-            Msg::SmsError { reason, .. } | Msg::CallError { reason, .. } => bail!(reason),
+            Msg::SmsError { reason, .. } | Msg::CallError { reason, .. } | Msg::NotifError { reason, .. } => bail!(reason),
             m => Ok(m),
         }
+    }
+    /// the notifications a phone has now (without icons), for a window that opens later
+    pub fn notifications(&self, fp: &Fingerprint) -> Vec<Notification> {
+        let g = self.lock();
+        let allowed = g.store.get(fp).is_some_and(|d| d.allowed.contains(&Capability::Notifications));
+        g.sessions.get(fp).filter(|_| allowed).map(|s| s.notifs.clone()).unwrap_or_default()
+    }
+    /// the icon of an app the phone sent
+    pub fn notif_icon(&self, fp: &Fingerprint, app: &str) -> Option<String> {
+        self.lock().sessions.get(fp).and_then(|s| s.icons.get(app).cloned())
     }
     pub fn allow(&self, fp: &Fingerprint, cap: Capability, on: bool) -> Result<()> {
         let mut g = self.lock();
@@ -302,6 +329,10 @@ impl Daemon {
         if let Some(s) = g.sessions.get_mut(fp) {
             if cap == Capability::Battery && !on {
                 s.battery = None;
+            }
+            if cap == Capability::Notifications && !on {
+                s.notifs.clear();
+                s.icons.clear();
             }
             let _ = s.out.try_send(Msg::Allowed { caps });
         }
