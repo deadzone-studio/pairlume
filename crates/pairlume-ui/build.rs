@@ -27,7 +27,7 @@ const PAGES: [&str; 26] = [
     "Calls",
     "Mover",
     "BtCard",
-    "Settings",
+    "SettingsWindow",
 ];
 
 fn main() {
