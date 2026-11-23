@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Window
+import QtCore
 import org.kde.layershell as LayerShell
 import dev.pairlume
 
@@ -11,8 +12,15 @@ Window {
     property bool shut: false
     LayerShell.Window.scope: "pairlume"
     LayerShell.Window.layer: LayerShell.Window.LayerOverlay
-    LayerShell.Window.anchors: LayerShell.Window.AnchorTop
-    LayerShell.Window.margins.top: 12
+    LayerShell.Window.anchors: LayerShell.Window.AnchorTop | LayerShell.Window.AnchorLeft
+    LayerShell.Window.margins.left: spotX
+    LayerShell.Window.margins.top: spotY
+    // where it was dragged to; at first the middle of the top
+    property real spotX: spot.x >= 0 ? spot.x : (Screen.width - width) / 2
+    property real spotY: spot.y >= 0 ? spot.y : 0
+    signal moved
+    onMoved: { spot.x = spotX; spot.y = spotY }
+    Settings { id: spot; location: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/pairlume/windows.conf"; category: "calls"; property real x: -1; property real y: -1 }
     LayerShell.Window.keyboardInteractivity: LayerShell.Window.KeyboardInteractivityNone
     LayerShell.Window.exclusionZone: -1
     title: Tr.t("Calls")
@@ -24,9 +32,11 @@ Window {
     Texts { id: texts; service: service; onCalled: { win.shut = false; if (call.state === "ended") later.restart(); else later.stop() } }
     // an ended call goes by itself; a missed one stays a while longer
     Timer { id: later; interval: texts.call && texts.call.missed ? 20000 : 4000; onTriggered: win.shut = true }
+    Component.onCompleted: if (Qt.application.arguments.indexOf("--shots") < 0 && !service.claim("calls", "[]")) Qt.callLater(Qt.quit)
     Item {
         id: scene
         anchors.fill: parent
+        Mover { win: win; anchors.fill: card }
         CallCard {
             id: card
             texts: texts

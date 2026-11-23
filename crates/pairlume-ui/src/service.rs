@@ -9,7 +9,7 @@ use pairlumed::{
     socket_path,
 };
 use std::{
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, BufReader, Read, Write},
     os::unix::net::UnixStream,
     pin::Pin,
     time::Duration,
@@ -51,6 +51,15 @@ pub mod qobject {
         /// the squares of a QR code: one line per row, 0 and 1
         #[qinvokable]
         fn qr(self: &Service, text: QString) -> QString;
+        /// one window of each kind: true when this one is it. Otherwise the one there is gets `args` and this one should go
+        #[qinvokable]
+        fn claim(self: Pin<&mut Service>, kind: QString, args: QString) -> bool;
+        /// another start of this kind of window, with its arguments (JSON list)
+        #[qsignal]
+        fn again(self: Pin<&mut Service>, args: QString);
+        /// asks Hyprland to bring this window to the front
+        #[qinvokable]
+        fn front(self: &Service);
         /// opens the texts window at the conversation with this number
         #[qinvokable]
         #[cxx_name = "writeTo"]
@@ -176,6 +185,39 @@ impl qobject::Service {
             let text = QString::from(text.as_str());
             let _ = qt.queue(move |o| o.replied(tag, text));
         });
+    }
+
+    fn claim(self: Pin<&mut Self>, kind: QString, args: QString) -> bool {
+        let kind: String = String::from(&kind).chars().filter(char::is_ascii_alphanumeric).collect();
+        let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR") else { return true };
+        let path = std::path::PathBuf::from(dir).join(format!("pairlume-ui-{kind}.sock"));
+        if let Ok(mut s) = UnixStream::connect(&path) {
+            let _ = s.set_write_timeout(Some(Duration::from_secs(1)));
+            if s.write_all(format!("{}\n", String::from(&args)).as_bytes()).is_ok() {
+                return false;
+            }
+        }
+        let _ = std::fs::remove_file(&path);
+        let Ok(l) = std::os::unix::net::UnixListener::bind(&path) else { return true };
+        let qt = self.qt_thread();
+        std::thread::spawn(move || {
+            for s in l.incoming().flatten() {
+                let mut line = String::new();
+                let _ = s.set_read_timeout(Some(Duration::from_secs(1)));
+                if BufReader::new(s).take(4096).read_line(&mut line).is_ok() {
+                    let line = QString::from(line.trim());
+                    if qt.queue(move |o| o.again(line)).is_err() {
+                        return;
+                    }
+                }
+            }
+        });
+        true
+    }
+
+    fn front(&self) {
+        let pid = format!("pid:{}", std::process::id());
+        let _ = std::process::Command::new("hyprctl").args(["dispatch", "focuswindow", &pid]).output();
     }
 
     fn write_to(&self, address: QString) {

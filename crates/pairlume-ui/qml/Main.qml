@@ -8,7 +8,13 @@ Window {
     id: win
     LayerShell.Window.scope: "pairlume"
     LayerShell.Window.layer: LayerShell.Window.LayerOverlay
-    LayerShell.Window.anchors: LayerShell.Window.AnchorNone
+    LayerShell.Window.anchors: LayerShell.Window.AnchorTop | LayerShell.Window.AnchorLeft
+    LayerShell.Window.margins.left: spotX
+    LayerShell.Window.margins.top: spotY
+    // in the middle, until it is dragged
+    property real spotX: (Screen.width - width) / 2
+    property real spotY: (Screen.height - height) / 2
+    signal moved
     LayerShell.Window.keyboardInteractivity: LayerShell.Window.KeyboardInteractivityOnDemand
     LayerShell.Window.exclusionZone: -1
     title: "Pairlume"
@@ -22,7 +28,7 @@ Window {
         id: service
         onBlurredChanged: Theme.blurred = blurred
         onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors.json: " + e) } }
-        Component.onCompleted: start()
+        Component.onCompleted: { if (Qt.application.arguments.indexOf("--shots") < 0 && !claim("pairing", "[]")) Qt.callLater(Qt.quit); else start() }
     }
     Shots { of: scene; what: card.step + "-" + card.how }
 
@@ -31,6 +37,7 @@ Window {
         anchors.fill: parent
         focus: true
         Keys.onEscapePressed: win.leave()
+        Mover { win: win; anchors.fill: card }
         PairingCard {
             id: card
             service: service
