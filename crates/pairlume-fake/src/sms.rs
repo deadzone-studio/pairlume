@@ -15,7 +15,7 @@ impl Sms {
     pub fn new(now: i64) -> Self {
         let talks: [Talk; 16] = [
             (
-                "Ola",
+                "Emma",
                 "+48 555 010 001",
                 &[
                     (false, "Hey, what time tonight?"),
@@ -108,8 +108,8 @@ impl Sms {
             },
             Msg::SmsPhotos { req, addresses } => {
                 let art: [(&str, &[u8]); 2] = [
-                    ("+48 555 010 001", include_bytes!("../art/ola.png")),
-                    ("+48 555 010 002", include_bytes!("../art/mama.png")),
+                    ("+48 555 010 001", include_bytes!("../art/emma.png")),
+                    ("+48 555 010 002", include_bytes!("../art/mom.png")),
                 ];
                 let faces = (art.iter().filter(|(a, _)| addresses.iter().any(|x| x == a)))
                     .map(|(a, png)| Face { address: (*a).into(), png: base64(png) })
@@ -129,9 +129,9 @@ impl Sms {
     }
 }
 
-/// Ola's picture, for her call
-pub fn ola() -> String {
-    base64(include_bytes!("../art/ola.png"))
+/// Emma's picture, for her call
+pub fn emma() -> String {
+    base64(include_bytes!("../art/emma.png"))
 }
 
 fn base64(b: &[u8]) -> String {

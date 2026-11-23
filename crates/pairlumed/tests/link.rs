@@ -249,7 +249,7 @@ fn thread(snippet: &str) -> pairlume_core::message::Thread {
     pairlume_core::message::Thread {
         id: 1,
         address: "+48 555 010 001".into(),
-        name: "Ola".into(),
+        name: "Emma".into(),
         snippet: snippet.into(),
         date: 1,
         unread: 0,
@@ -378,7 +378,7 @@ async fn calls_need_the_permission_and_are_cleaned() {
         missed: false,
         png: Some("PHN2Zz4=".into()),
     };
-    send(&mut l.stream, &ring("Ola")).await.unwrap();
+    send(&mut l.stream, &ring("Emma")).await.unwrap();
     loop {
         if let Msg::Denied { cap } = next(&mut l).await.unwrap() {
             assert_eq!(cap, Capability::Calls);
@@ -386,14 +386,14 @@ async fn calls_need_the_permission_and_are_cleaned() {
         }
     }
     pc.d.allow(&fp, Capability::Calls, true).unwrap();
-    send(&mut l.stream, &ring("Ola\u{202e}\x1b[2J")).await.unwrap();
+    send(&mut l.stream, &ring("Emma\u{202e}\x1b[2J")).await.unwrap();
     let (name, png) = pc
         .wait(|e| match e {
             Event::Call { name, png, state: CallState::Ringing, .. } => Some((name.clone(), png.clone())),
             _ => None,
         })
         .await;
-    assert_eq!(name, "Ola[2J");
+    assert_eq!(name, "Emma[2J");
     let now = pc.d.status()[0].call.clone().expect("the call is in the status");
     assert_eq!(now.state, CallState::Ringing);
     assert_eq!(png, None, "not a picture");

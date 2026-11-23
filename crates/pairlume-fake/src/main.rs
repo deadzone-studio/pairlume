@@ -51,7 +51,7 @@ enum Cmd {
         /// stop after this many seconds
         #[arg(long)]
         seconds: Option<u64>,
-        /// Ola calls after this many seconds, and rings for 12
+        /// Emma calls after this many seconds, and rings for 12
         #[arg(long)]
         ring: Option<u64>,
     },
@@ -80,7 +80,7 @@ async fn stay(l: Link, battery: u8, seconds: Option<u64>, ring: Option<u64>) -> 
         let (w, calls) = (w.clone(), calls.clone());
         tokio::spawn(async move {
             tokio::time::sleep(Duration::from_secs(after)).await;
-            let m = calls.lock().await.ring("+48 555 010 001", "Ola", Some(sms::ola()));
+            let m = calls.lock().await.ring("+48 555 010 001", "Emma", Some(sms::emma()));
             let _ = send(&mut *w.lock().await, &m).await;
             tokio::time::sleep(Duration::from_secs(12)).await;
             let m = calls.lock().await.missed();
