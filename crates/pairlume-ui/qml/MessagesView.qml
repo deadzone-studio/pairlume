@@ -15,10 +15,13 @@ Item {
     readonly property var waiter: { texts.tallied; for (let i = 0; i < texts.threads.count; i++) { const t = texts.threads.get(i); if (t.unread > 0 && skipped[t.id] !== t.date) return { id: t.id, name: t.name, address: t.address, snippet: t.snippet, date: t.date } } return null }
     property bool solid: false
     signal leave
-    function copied(t) { clip.text = t; clip.selectAll(); clip.copy(); said.text = Tr.t("copied: %1").arg(t); quiet.restart() }
+    function copied(t) { clip.text = t; clip.selectAll(); clip.copy(); say(Tr.t("copied: %1").arg(t)) }
     function putOff(t) { const s = Object.assign({}, skipped); s[t.id] = t.date; skipped = s; caller = null }
     function go(t) { caller = null; texts.show({ id: t.id, name: t.name, address: t.address }) }
     TextEdit { id: clip; visible: false }
+    function say(t) { said.text = t; quiet.restart() }
+    // a call that could not be made or answered: said here when no call card is there to say it
+    Connections { target: v.texts; function onCallTroubleChanged() { if (v.texts.callTrouble !== "" && !v.texts.call) v.say(v.texts.callTrouble) } }
     Connections { target: v.texts; function onCame(thread, message) { if (!v.wide && !v.talking) v.caller = Object.assign({}, thread, { snippet: message.text, date: message.date }) } }
 
     Shortcut { sequences: ["Ctrl+K", "Ctrl+F"]; onActivated: people.search() }

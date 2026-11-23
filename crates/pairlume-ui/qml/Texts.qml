@@ -17,6 +17,7 @@ Item {
     property string callTrouble
     signal called
     function callDo(what, number) {
+        callTrouble = ""
         if (device === "") return
         const r = { cmd: "call", device: device, what: what }
         if (number) r.number = number
