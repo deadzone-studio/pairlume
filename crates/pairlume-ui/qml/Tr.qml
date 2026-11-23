@@ -8,9 +8,13 @@ QtObject {
     function t(s) { return (words[lang] || {})[s] || s }
     readonly property var words: ({ pl: {
         "Messages": "Wiadomości", "Message": "Wiadomość", "Search": "Szukaj", "Send": "Wyślij", "Back": "Wróć", "Close": "Zamknij",
-        "Choose a conversation": "Wybierz rozmowę", "Asking the phone": "Pytam telefon", "No messages": "Brak wiadomości", "Nothing found": "Nic nie znaleziono",
-        "Not sent": "Nie wysłano", "Not known if it was sent: look on the phone": "Nie wiadomo, czy poszło: sprawdź w telefonie", "Sending": "Wysyłam",
-        "Today": "Dzisiaj", "Yesterday": "Wczoraj",
+        "Asking the phone": "Pytam telefon", "No messages": "Brak wiadomości", "Nothing found": "Nic nie znaleziono",
+        "Not sent": "Nie wysłano", "Not known if it was sent: look on the phone": "Nie wiadomo, czy poszło: sprawdź w telefonie", 
+        "Write to %1": "Napisz do: %1", "too long": "za długie", "copied: %1": "skopiowane: %1", "Nobody is waiting": "Nikt nie czeka", "Waiting for you: %1": "Czeka na Ciebie: %1",
+        "Not connected": "Brak połączenia", "a code, %1": "kod, %1", "just now": "przed chwilą", "battery %1%": "bateria %1%", "charging": "ładuje się",
+        "Later": "Później", "Reply": "Odpisz", "Conversation": "Rozmowa", "Copy code": "Kopiuj kod", "Copy %1": "Kopiuj %1",
+        "All": "Wszystkie", "New": "Nowe", "Name, number or word": "Imię, numer albo słowo",
+        "Yesterday": "Wczoraj",
         "Pairlume is not running": "Pairlume nie działa", "No phone is paired yet": "Żaden telefon nie jest sparowany", "%1 is not connected": "%1 nie jest połączony",
         "Texts are off for %1. To turn them on:\npairlume allow \"%1\" sms": "SMS-y są wyłączone dla %1. Aby włączyć:\npairlume allow \"%1\" sms",
         "Shake your phone": "Potrząśnij telefonem", "Scan with your phone": "Zeskanuj telefonem", "Type this on your phone": "Wpisz to w telefonie",

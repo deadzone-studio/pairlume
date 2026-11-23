@@ -23,8 +23,6 @@ Window {
     Item {
         id: scene
         anchors.fill: parent
-        focus: true
-        Keys.onEscapePressed: texts.open >= 0 ? texts.leave() : win.leave()
         MessagesView {
             id: view
             width: parent.width - 20
@@ -32,6 +30,8 @@ Window {
             y: 10
             x: parent.width
             texts: texts
+            focus: true
+            onLeave: win.leave()
             NumberAnimation { target: view; property: "x"; to: 10; running: true; duration: 520; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spring }
         }
         SequentialAnimation {

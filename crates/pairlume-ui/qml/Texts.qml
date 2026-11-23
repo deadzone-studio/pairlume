@@ -9,6 +9,12 @@ Item {
     property string device
     property string deviceName
     property bool online: false
+    property int battery: -1
+    property bool charging: false
+    // conversations with something to read
+    property int waiting: 0
+    function tally() { let n = 0; for (let i = 0; i < threads.count; i++) if (threads.get(i).unread > 0) n++; waiting = n; tallied++ }
+    property int tallied: 0
     property string trouble: Tr.t("Pairlume is not running")
     property bool loading: false
     property bool more: false
@@ -34,6 +40,26 @@ Item {
         ask("faces " + some.length, { cmd: "sms_photos", device: device, addresses: some })
     }
     function title(t) { return t.name || t.address }
+    function when(ms) {
+        const d = new Date(ms), now = new Date()
+        if (d.toDateString() === now.toDateString()) return Qt.formatTime(d, "HH:mm")
+        if (new Date(now - 864e5).toDateString() === d.toDateString()) return Tr.t("Yesterday")
+        return now - d < 6 * 864e5 ? d.toLocaleDateString(Qt.locale(), "dddd") : d.toLocaleDateString(Qt.locale(), d.getFullYear() === now.getFullYear() ? "d MMM" : "d MMM yyyy")
+    }
+    function ago(ms) { return Date.now() - ms < 12e4 ? Tr.t("just now") : when(ms) }
+    // the code in a text: 4 to 8 digits that stand alone, in a text that speaks of one, and are not a year or a piece of a phone number
+    function code(s) {
+        if (!/code|kod|haslo|hasło|pin|otp|verif|weryfik|autory/i.test(s)) return ""
+        const re = /(?:^|[^0-9+\/.,])([0-9]{4,8})(?![0-9\/]|[ -][0-9]{3})/g
+        let m
+        while ((m = re.exec(s)) !== null) if (!/^(19|20)[0-9]{2}$/.test(m[1])) return m[1]
+        return ""
+    }
+    // of the open conversation, when it has come today
+    function lastCode() {
+        for (let i = messages.count - 1; i >= Math.max(0, messages.count - 6); i--) { const m = messages.get(i); if (!m.out && Date.now() - m.date < 864e5) { const c = code(m.body); if (c !== "") return c } }
+        return ""
+    }
     function ask(tag, r) { service.askFor(tag, JSON.stringify(r)) }
     function look() { ask("status", { cmd: "status" }) }
     function refresh() { if (!online) return; loading = threads.count === 0; ask("threads", { cmd: "sms_threads", device: device, before: null }) }
@@ -45,6 +71,7 @@ Item {
         messages.clear()
         moreBefore = false
         for (let i = 0; i < threads.count; i++) if (threads.get(i).id === t.id) threads.setProperty(i, "unread", 0)
+        tally()
         ask("read " + round, { cmd: "sms_messages", device: device, thread: t.id, before: null })
     }
     function leave() { round++; open = -1; head = null; messages.clear() }
@@ -73,12 +100,13 @@ Item {
         }
         function onHappened(json) {
             const e = JSON.parse(json)
-            if (["online", "offline", "paired", "unpaired", "allowed"].includes(e.event)) tx.look()
+            if (["online", "offline", "paired", "unpaired", "allowed", "battery"].includes(e.event)) tx.look()
             if (e.event === "sms" && e.id === tx.device) {
                 const here = e.thread.id === tx.open
                 tx.up(Object.assign({}, e.thread, { unread: here ? 0 : e.thread.unread }))
                 if (here) { const r = tx.row(e.message); r.fresh = true; tx.messages.append(r) }
                 tx.wantFace(e.thread)
+                tx.tally()
                 tx.came(e.thread, e.message)
             }
         }
@@ -91,6 +119,8 @@ Item {
                 tx.device = s ? s.id : ""
                 tx.deviceName = s ? s.name : ""
                 tx.online = !!(s && s.online && may)
+                tx.battery = s && s.battery ? s.battery[0] : -1
+                tx.charging = !!(s && s.battery && s.battery[1])
                 tx.trouble = !s ? Tr.t("No phone is paired yet") : !s.online ? Tr.t("%1 is not connected").arg(s.name)
                            : !may ? Tr.t("Texts are off for %1. To turn them on:\npairlume allow \"%1\" sms").arg(s.name) : ""
                 if (tx.device !== was) { if (tx.online) tx.refresh(); if (was !== "" && tx.device !== "") { tx.threads.clear(); tx.leave() } }
@@ -103,6 +133,7 @@ Item {
                 if (kind === "threads") tx.threads.clear()
                 a.threads.forEach(t => { tx.threads.append(t); tx.wantFace(t) })
                 tx.more = a.more
+                tx.tally()
                 tx.loading = false
             } else if (kind === "read" || kind === "earlier") {
                 if (n !== tx.round || !a) return

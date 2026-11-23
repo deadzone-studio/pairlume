@@ -6,29 +6,32 @@ import dev.pairlume
 Row {
     id: d
     property string code
+    property real cell: 44
+    // six and eight are read in halves
+    readonly property int half: code.length === 6 || code.length === 8 ? code.length / 2 - 1 : -1
     spacing: 8
     Accessible.role: Accessible.StaticText
     Accessible.name: code.split("").join(" ")
     Repeater {
         model: d.code.length
         Item {
-            id: cell
+            id: one
             required property int index
-            width: 44 + (index === 2 ? 14 : 0)
-            height: 60
+            width: d.cell + (index === d.half ? 14 : 0)
+            height: d.cell * 1.36
             Rectangle {
                 id: box
-                width: 44
-                height: 60
+                width: d.cell
+                height: d.cell * 1.36
                 radius: 14
                 color: Theme.fade(Theme.accent, 0.16)
                 border.color: Theme.fade(Theme.accent, 0.4)
                 opacity: 0
                 scale: 0.4
-                Text { anchors.centerIn: parent; text: d.code[cell.index] ?? ""; color: Theme.text; font.pixelSize: 30; font.weight: Font.Bold }
+                Text { anchors.centerIn: parent; text: d.code[one.index] ?? ""; color: Theme.text; font.pixelSize: d.cell * 0.68; font.weight: Font.Bold }
                 SequentialAnimation {
                     running: true
-                    PauseAnimation { duration: cell.index * 70 }
+                    PauseAnimation { duration: one.index * 70 }
                     ParallelAnimation {
                         NumberAnimation { target: box; property: "opacity"; to: 1; duration: 160 }
                         NumberAnimation { target: box; property: "scale"; to: 1; duration: 460; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spring }

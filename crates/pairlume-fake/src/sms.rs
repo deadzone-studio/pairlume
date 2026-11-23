@@ -13,22 +13,41 @@ pub struct Sms {
 
 impl Sms {
     pub fn new(now: i64) -> Self {
-        let talks: [Talk; 5] = [
+        let talks: [Talk; 16] = [
             (
                 "Ola",
                 "+48 555 010 001",
                 &[
-                    (false, "Hej, o której dzisiaj?"),
-                    (true, "18 pod kinem?"),
-                    (false, "Idealnie"),
-                    (true, "Biorę popcorn 🍿"),
-                    (false, "A ja picie. Nie spóźnij się tym razem 😄"),
+                    (false, "Hey, what time tonight?"),
+                    (true, "6 at the cinema?"),
+                    (false, "Perfect"),
+                    (true, "I'll get popcorn 🍿"),
+                    (false, "I'll get drinks. Don't be late this time 😄"),
                 ],
             ),
-            ("Mama", "+48 555 010 002", &[(false, "Kup mleko po drodze"), (true, "Ok, coś jeszcze?"), (false, "Chleb i masło")]),
-            ("", "+48 555 010 003", &[(false, "Dzień dobry, kurier będzie między 12 a 14.")]),
-            ("8 Kuba klasa", "+48 555 010 004", &[(true, "Gramy?"), (false, "Za 10 minut"), (true, "Czekam na serwerze")]),
-            ("", "PARCEL", &[(false, "Your parcel is waiting. Code: 000000.")]),
+            (
+                "Mom",
+                "+48 555 010 002",
+                &[(false, "Get milk on the way"), (true, "Ok, anything else?"), (false, "Bread and butter")],
+            ),
+            ("", "+48 555 010 003", &[(false, "Hello, the courier will come between 12 and 2.")]),
+            ("8 Jake class", "+48 555 010 004", &[(true, "Playing?"), (false, "In 10 minutes"), (true, "Waiting on the server")]),
+            ("", "PARCEL", &[(false, "Your parcel is waiting. Code: 481207. Track it: https://parcel.example/t/91")]),
+            (
+                "Zoë Müller-Wiśniewska From Work",
+                "+48 555 010 006",
+                &[(false, "Please send the report by Friday, signed if you can."), (true, "I'll send it tomorrow")],
+            ),
+            ("", "+48 555 010 007", &[(false, "Call me back")]),
+            ("Dad", "+48 555 010 008", &[(true, "Home at 8"), (false, "Fine")]),
+            ("Bank", "BANK", &[(false, "Code: 930114. Do not give it to anyone.")]),
+            ("Igor", "+48 555 010 010", &[(false, "Do you have the physics notes?"), (true, "Yes, I'll send them tonight")]),
+            ("", "+48 555 010 011", &[(false, "Your appointment: 24.11 at 9:30")]),
+            ("Amy", "+48 555 010 012", &[(false, "Happy birthday!!"), (true, "Thanks ❤️")]),
+            ("Coach", "+48 555 010 013", &[(false, "Practice moved to Thursday")]),
+            ("Grandma", "+48 555 010 014", &[(false, "When are you coming for dinner"), (true, "On Sunday")]),
+            ("Shop", "+48 555 010 015", &[(false, "Your order is ready to pick up")]),
+            ("Michael", "+48 555 010 016", &[(true, "ok")]),
         ];
         let mut s = Self { threads: vec![], next: 1000, now };
         for (i, (name, address, texts)) in talks.iter().enumerate() {
@@ -49,7 +68,7 @@ impl Sms {
                 name: (*name).into(),
                 snippet: list.last().map(|t| t.text.clone()).unwrap_or_default(),
                 date: start,
-                unread: u32::from(i == 0),
+                unread: [1, 0, 2].get(i).copied().unwrap_or(0),
             };
             s.threads.push((th, list));
         }

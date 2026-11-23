@@ -46,23 +46,23 @@ Window {
         anchors.fill: parent
         focus: true
         Keys.onEscapePressed: { closing.start(); texts.leave() }
-        Rectangle {
+        TalkCard {
             id: card
             readonly property bool on: texts.open >= 0
             x: 8
             width: 374
             height: parent.height
-            radius: 28
-            color: Theme.fade(Theme.surface, Theme.glass)
-            border.color: Theme.fade(Theme.text, 0.12)
+            texts: texts
+            back: false
+            onCopy: t => { clip.text = t; clip.selectAll(); clip.copy() }
             transformOrigin: Item.Right
             scale: on ? 1 : 0.6
             opacity: on ? 1 : 0
             visible: opacity > 0
             Behavior on scale { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spring } }
             Behavior on opacity { NumberAnimation { duration: Theme.quick } }
-            Talk { anchors.fill: parent; texts: texts; back: false }
         }
+        TextEdit { id: clip; visible: false }
         ListView {
             id: dock
             anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
@@ -83,11 +83,10 @@ Window {
                 Avatar {
                     anchors.centerIn: parent
                     width: 54
-                    height: 54
                     name: f.model.name || f.model.address
                     address: f.model.address
                     photo: texts.face(f.model.address)
-                    unread: f.model.unread
+                    ring: f.model.unread > 0
                     scale: m.pressed ? 0.9 : f.model.tid === texts.open ? 1.08 : m.containsMouse ? 1.06 : 1
                     Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spring } }
                     Accessible.role: Accessible.Button
