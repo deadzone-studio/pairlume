@@ -17,6 +17,7 @@ path = "src/bin/pairlume.rs"
 [dependencies]
 pairlume-core = { path = "../pairlume-core" }
 anyhow.workspace = true
+bluer.workspace = true
 clap.workspace = true
 mdns-sd.workspace = true
 qrcode.workspace = true

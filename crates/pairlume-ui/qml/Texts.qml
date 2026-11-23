@@ -15,6 +15,9 @@ Item {
     property bool mayCall: false
     property var call: null
     property string callTrouble
+    // Bluetooth pairing for the voice of calls: { name, code } while the computer waits for a yes, then { ok }
+    property var bt: null
+    function btAnswer(yes) { ask("bt", { cmd: "bt_answer", yes: yes }) }
     signal called
     function callDo(what, number) {
         callTrouble = ""
@@ -116,6 +119,8 @@ Item {
         function onHappened(json) {
             const e = JSON.parse(json)
             if (["online", "offline", "paired", "unpaired", "allowed", "battery"].includes(e.event)) tx.look()
+            if (e.event === "bt_code") tx.bt = { name: e.name, code: e.code }
+            if (e.event === "bt_done") tx.bt = { ok: e.ok, name: tx.bt ? tx.bt.name : "" }
             if (e.event === "call" && e.id === tx.device) {
                 const was = tx.call
                 const c = { state: e.state, number: e.number, name: e.name, missed: e.missed, png: e.png ? "data:image/png;base64," + e.png : (was && was.number === e.number ? was.png : ""),

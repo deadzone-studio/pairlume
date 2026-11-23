@@ -57,6 +57,10 @@ pub enum Request {
         #[serde(default)]
         number: Option<String>,
     },
+    /// the codes of Bluetooth pairing are the same, or not
+    BtAnswer {
+        yes: bool,
+    },
     /// events from now on, until the connection is closed
     Watch,
 }
@@ -192,6 +196,7 @@ async fn run(d: &Arc<Daemon>, r: Request) -> Result<Reply> {
             };
             out.answer = Some(d.ask(&fp, Capability::Calls, |req| Msg::CallDo { req, what, number }).await?);
         }
+        Request::BtAnswer { yes } => crate::bluetooth::answer(d, yes)?,
         Request::Watch => unreachable!("handled by client()"),
     }
     Ok(out)

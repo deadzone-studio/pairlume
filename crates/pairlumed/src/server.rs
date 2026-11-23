@@ -154,6 +154,9 @@ fn start_session(d: &Arc<Daemon>, s: Stream, fp: Fingerprint) -> Result<()> {
     g.counter += 1;
     let number = g.counter;
     out.try_send(Msg::Allowed { caps: dev.allowed }).expect("an empty queue");
+    if let Some(address) = d.bt_address() {
+        out.try_send(Msg::Bluetooth { address }).expect("room for two");
+    }
     let task = tokio::spawn(run_session(d.clone(), s, fp, number, rx)).abort_handle();
     // the same phone again (it lost the Wi-Fi): the old connection goes
     if let Some(old) = g.sessions.insert(fp, Session { number, task, out, battery: None, asked: Default::default(), call: None })
@@ -193,7 +196,7 @@ async fn run_session(d: Arc<Daemon>, s: Stream, fp: Fingerprint, number: u64, mu
     }
 }
 
-fn handle(d: &Daemon, fp: Fingerprint, number: u64, m: Msg) -> Result<()> {
+fn handle(d: &Arc<Daemon>, fp: Fingerprint, number: u64, m: Msg) -> Result<()> {
     let mut g = d.lock();
     let allowed = match m.needs() {
         Some(cap) => g.store.get(&fp).is_some_and(|x| x.allowed.contains(&cap)),
@@ -237,6 +240,15 @@ fn handle(d: &Daemon, fp: Fingerprint, number: u64, m: Msg) -> Result<()> {
             if let Msg::Call { state, number, name, missed, png } = m {
                 d.tell(Event::Call { id: fp, state, number, name, missed, png });
             }
+        }
+        Msg::BtPair => {
+            drop(g);
+            let d = d.clone();
+            tokio::spawn(async move {
+                if let Err(e) = crate::bluetooth::open(&d, fp).await {
+                    tracing::warn!("Bluetooth pairing: {e:#}");
+                }
+            });
         }
         Msg::Pong | Msg::Unknown => {}
         m => bail!("unexpected message: {m:?}"),

@@ -16,6 +16,8 @@ QtObject {
         "Calls": "Połączenia", "Call": "Zadzwoń", "Hidden number": "Numer zastrzeżony", "is calling": "dzwoni", "calling": "dzwonię", "on the phone, %1": "rozmowa, %1",
         "missed call, %1": "nieodebrane, %1", "call ended": "rozmowa zakończona", "The voice stays on the phone": "Głos zostaje w telefonie",
         "Decline": "Odrzuć", "Answer": "Odbierz", "End call": "Rozłącz", "Text": "Napisz", "Call back": "Oddzwoń",
+        "Bluetooth for calls: is the same code on the phone?": "Bluetooth do rozmów: czy na telefonie jest ten sam kod?", "Calls can be heard here now": "Teraz rozmowy słychać na komputerze",
+        "Bluetooth was not paired": "Bluetooth nie został sparowany",
         "All": "Wszystkie", "New": "Nowe", "Name, number or word": "Imię, numer albo słowo",
         "Yesterday": "Wczoraj",
         "Pairlume is not running": "Pairlume nie działa", "No phone is paired yet": "Żaden telefon nie jest sparowany", "%1 is not connected": "%1 nie jest połączony",

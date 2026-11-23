@@ -12,6 +12,7 @@ repository = "https://github.com/M4rtwy/pairlume"
 
 [workspace.dependencies]
 anyhow = "1"
+bluer = { version = "0.17", features = ["bluetoothd"] }
 clap = { version = "4", features = ["derive"] }
 mdns-sd = "0.22"
 qrcode = { version = "0.15", default-features = false }

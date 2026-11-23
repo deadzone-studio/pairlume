@@ -46,6 +46,7 @@ async fn main() -> Result<()> {
             }
         });
     }
+    tokio::spawn(pairlumed::bluetooth::start(d.clone()));
     let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
     let r = tokio::select! {
         r = server::serve(d.clone(), tcp) => r,

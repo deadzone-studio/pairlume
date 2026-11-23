@@ -215,10 +215,45 @@ private fun CallSwitches(computer: String) {
             Choice("Show on $computer", "Who calls, with the name and picture from your contacts. Nothing is saved.", show) { on ->
                 if (on) askShow.launch(CallChoices.SHOW + Manifest.permission.READ_CONTACTS) else { choices.show = false; show = false }
             }
-            Choice("Answer and call from $computer", "The voice stays on the phone. It never calls codes with * or #.", act) { on ->
+            Choice("Answer and call from $computer", "It never calls codes with * or #.", act) { on ->
                 if (on) askAct.launch(CallChoices.ACT) else { choices.act = false; act = false }
             }
+            VoiceRow(computer)
         }
+    }
+}
+
+/** the voice of calls on the computer: one button, the rest is Bluetooth's own question */
+@Composable
+private fun VoiceRow(computer: String) {
+    val context = LocalContext.current
+    val address = LinkState.bluetooth
+    var paired by remember { mutableStateOf(false) }
+    var asked by remember { mutableStateOf(false) }
+    fun look() { paired = address != null && Voice.paired(context, address) }
+    LaunchedEffect(address, asked) { while (true) { look(); delay(1500) } }
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok && address != null) asked = Voice.pair(context, address)
+    }
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text("Voice on $computer")
+            Text(
+                when {
+                    address == null -> "$computer has no Bluetooth, or is not connected"
+                    paired -> "Ready. Calls you answer there are heard there, through Bluetooth."
+                    !Voice.on(context) -> "Turn Bluetooth on first"
+                    asked -> "Say yes on both screens: the same code is on $computer"
+                    else -> "Talk through the computer's speakers and microphone"
+                },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        if (address != null && !paired && Voice.on(context)) Button({
+            if (Voice.permitted(context)) asked = Voice.pair(context, address)
+            else if (Build.VERSION.SDK_INT >= 31) ask.launch(Manifest.permission.BLUETOOTH_CONNECT)
+        }) { Text("Connect") }
     }
 }
 

@@ -180,6 +180,12 @@ pub enum Msg {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         png: Option<String>,
     },
+    /// the computer: its Bluetooth address, for the voice of calls
+    Bluetooth {
+        address: String,
+    },
+    /// the phone: it is about to pair over Bluetooth with that address
+    BtPair,
     CallDo {
         req: u64,
         what: CallAction,
@@ -313,7 +319,7 @@ impl Msg {
             | Self::SmsSent { .. }
             | Self::SmsError { .. }
             | Self::SmsNew { .. } => Some(Capability::Sms),
-            Self::Call { .. } | Self::CallDone { .. } | Self::CallError { .. } => Some(Capability::Calls),
+            Self::Call { .. } | Self::CallDone { .. } | Self::CallError { .. } | Self::BtPair => Some(Capability::Calls),
             _ => None,
         }
     }

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The service on the computer. Windows are other programs that talk to it through `control`.
+pub mod bluetooth;
 pub mod control;
 pub mod discovery;
 pub mod server;
@@ -84,6 +85,16 @@ pub enum Event {
         thread: Thread,
         message: Text,
     },
+    /// Bluetooth for calls: is the same code on the phone?
+    BtCode {
+        id: Fingerprint,
+        name: String,
+        code: String,
+    },
+    BtDone {
+        id: Fingerprint,
+        ok: bool,
+    },
     Call {
         id: Fingerprint,
         state: CallState,
@@ -149,6 +160,7 @@ pub struct Daemon {
     inner: Mutex<Inner>,
     events: broadcast::Sender<Event>,
     addr: Mutex<Option<SocketAddr>>,
+    bt: Mutex<bluetooth::Bt>,
 }
 
 impl Daemon {
@@ -159,6 +171,7 @@ impl Daemon {
             inner: Mutex::new(Inner { store: Store::open(dir)?, sessions: BTreeMap::new(), window: None, counter: 0 }),
             events: broadcast::channel(64).0,
             addr: Mutex::new(None),
+            bt: Mutex::new(bluetooth::Bt::default()),
         }))
     }
 
@@ -167,6 +180,9 @@ impl Daemon {
     }
     pub fn events(&self) -> broadcast::Receiver<Event> {
         self.events.subscribe()
+    }
+    pub fn bt_address(&self) -> Option<String> {
+        self.bt.lock().unwrap_or_else(|e| e.into_inner()).address.clone()
     }
     fn tell(&self, e: Event) {
         let _ = self.events.send(e);

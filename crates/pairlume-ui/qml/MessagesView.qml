@@ -79,6 +79,13 @@ Item {
             }
         }
     }
+    // the phone pairs over Bluetooth: asked here too, for when the call window is not running
+    Turn {
+        on: v.texts.bt !== null && v.texts.bt.code !== undefined
+        anchors { left: v.wide ? first.right : parent.left; leftMargin: v.wide ? 12 : 0; right: parent.right }
+        z: 3
+        BtCard { solid: v.solid; anchors.fill: parent; texts: v.texts }
+    }
     Rectangle {
         anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 96 }
         opacity: quiet.running ? 1 : 0

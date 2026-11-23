@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import dev.pairlume.core.Link
 import dev.pairlume.core.Message
 import dev.pairlume.core.message
+import dev.pairlume.core.text
 import dev.pairlume.core.texts
 import dev.pairlume.core.type
 import java.net.InetSocketAddress
@@ -33,6 +34,8 @@ import java.util.concurrent.TimeUnit
 object LinkState {
     var connected by mutableStateOf(false)
     var allowed by mutableStateOf(emptySet<String>())
+    /** the computer's Bluetooth address, when it has Bluetooth */
+    var bluetooth by mutableStateOf<String?>(null)
 }
 
 /** keeps the connection to the paired computer */
@@ -181,6 +184,10 @@ class LinkService : Service() {
                         // a battery that was refused before is told again
                         battery?.let { if ("battery" in caps) l.wire.send(it) }
                     }
+                    "bluetooth" -> {
+                        val a = m.text("address")
+                        main.post { if (running) LinkState.bluetooth = a }
+                    }
                     "call_do" -> {
                         val q = m
                         answers.execute { try { l.wire.send(calls.answer(q)) } catch (_: Exception) { l.close() } }
@@ -214,6 +221,8 @@ class LinkService : Service() {
     companion object {
         @Volatile private var current: LinkService? = null
         fun textCame(from: String, body: String) { current?.tell(from, body) }
+        /** the computer opens its Bluetooth pairing for a while */
+        fun askBluetooth() { current?.say(message("bt_pair")) }
         fun start(c: Context) { if (Saved(c).computer != null) c.startForegroundService(Intent(c, LinkService::class.java)) }
         fun stop(c: Context) { c.stopService(Intent(c, LinkService::class.java)) }
     }

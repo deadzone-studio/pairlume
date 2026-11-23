@@ -8,7 +8,7 @@ import dev.pairlume
 // Waits in the background; when the phone rings, the call comes to the top of the screen. Started once with the desktop.
 Window {
     id: win
-    readonly property bool on: texts.call !== null && !shut
+    readonly property bool on: (texts.call !== null || texts.bt !== null) && !shut
     property bool shut: false
     LayerShell.Window.scope: "pairlume"
     LayerShell.Window.layer: LayerShell.Window.LayerOverlay
@@ -29,7 +29,7 @@ Window {
     color: "transparent"
     visible: on || away.running
     Service { id: service; onBlurredChanged: Theme.blurred = blurred; onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { console.warn("colors: " + e) } } }
-    Texts { id: texts; service: service; onCalled: { win.shut = false; if (call.state === "ended") later.restart(); else later.stop() } }
+    Texts { id: texts; service: service; onBtChanged: { win.shut = false; if (bt && bt.code === undefined) later.restart() } onCalled: { win.shut = false; if (call.state === "ended") later.restart(); else later.stop() } }
     // an ended call goes by itself; a missed one stays a while longer
     Timer { id: later; interval: texts.call && texts.call.missed ? 20000 : 4000; onTriggered: win.shut = true }
     Component.onCompleted: if (Qt.application.arguments.indexOf("--shots") < 0 && !service.claim("calls", "[]")) Qt.callLater(Qt.quit)
@@ -49,7 +49,14 @@ Window {
             Behavior on opacity { NumberAnimation { duration: Theme.quick } }
             onClose: win.shut = true
             onWrite: t => { win.shut = true; service.writeTo(t.address) }
+            visible: texts.call !== null
+        }
+        BtCard {
+            texts: texts
+            visible: texts.bt !== null && texts.call === null
+            anchors.fill: card
+            onClose: win.shut = true
         }
     }
-    Shots { of: scene; what: texts.call ? "call-" + texts.call.state + (texts.call.missed ? "-missed" : "") : "" }
+    Shots { of: scene; what: texts.bt ? "bt-" + (texts.bt.code !== undefined ? "asking" : texts.bt.ok ? "ok" : "no") : texts.call ? "call-" + texts.call.state + (texts.call.missed ? "-missed" : "") : "" }
 }

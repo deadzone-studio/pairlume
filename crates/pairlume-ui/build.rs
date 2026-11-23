@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use cxx_qt_build::{CxxQtBuilder, QmlFile, QmlModule};
 
-const PAGES: [&str; 24] = [
+const PAGES: [&str; 25] = [
     "Main",
     "PairingCard",
     "Phone",
@@ -26,6 +26,7 @@ const PAGES: [&str; 24] = [
     "CallCard",
     "Calls",
     "Mover",
+    "BtCard",
 ];
 
 fn main() {
