@@ -77,12 +77,12 @@ class Texts(private val c: Context) {
         fun no(why: String) = message("sms_error", "req" to req, "reason" to why)
         return try {
             if (m.type == "sms_send") {
-                if (!Choices(c).send) return no("Sending texts is off in Pairlume on the phone")
-                if (!rate.take()) return no("Too many texts at once. Wait a minute")
+                if (!Choices(c).send) return no(t("Sending texts is off in Pairlume on the phone"))
+                if (!rate.take()) return no(t("Too many texts at once. Wait a minute"))
                 send(m.text("to"), m.text("text"))
                 message("sms_sent", "req" to req)
             } else {
-                if (!Choices(c).read) return no("Reading texts is off in Pairlume on the phone")
+                if (!Choices(c).read) return no(t("Reading texts is off in Pairlume on the phone"))
                 when (m.type) {
                     "sms_photos" -> photos(req, m.texts("addresses").take(5))
                     "sms_list" -> threads(req, m.number("limit").coerceIn(1, 60), m.maybeLong("before"))
@@ -92,9 +92,9 @@ class Texts(private val c: Context) {
         } catch (e: PairlumeException) {
             no(e.message ?: "")
         } catch (_: SecurityException) {
-            no("Android does not let Pairlume use texts")
+            no(t("Android does not let Pairlume use texts"))
         } catch (_: Exception) {
-            no("The phone could not do that")
+            no(t("The phone could not do that"))
         }
     }
 
@@ -220,8 +220,8 @@ class Texts(private val c: Context) {
 
     /** returns when the network took every part; an exception says it did not */
     private fun send(to: String, body: String) {
-        if (!SmsRate.isNumber(to)) throw PairlumeException("Texts go to phone numbers only")
-        if (body.isBlank() || body.length > 2000) throw PairlumeException("A text has 1 to 2000 characters")
+        if (!SmsRate.isNumber(to)) throw PairlumeException(t("Texts go to phone numbers only"))
+        if (body.isBlank() || body.length > 2000) throw PairlumeException(t("A text has 1 to 2000 characters"))
         val sms = if (android.os.Build.VERSION.SDK_INT >= 31) c.getSystemService(SmsManager::class.java) else @Suppress("DEPRECATION") SmsManager.getDefault()
         val parts = sms.divideMessage(body)
         val left = CountDownLatch(parts.size)
@@ -238,8 +238,8 @@ class Texts(private val c: Context) {
             val hear = parts.indices.map { PendingIntent.getBroadcast(c, it, Intent(action).setPackage(c.packageName), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT) }
             sms.sendMultipartTextMessage(to, null, parts, ArrayList(hear), null)
             // longer than that: the phone goes on by itself, the computer is told it is not known
-            if (!left.await(17, TimeUnit.SECONDS)) throw PairlumeException("The phone did not answer in time")
-            if (bad.get() > 0) throw PairlumeException("The network did not take the text")
+            if (!left.await(17, TimeUnit.SECONDS)) throw PairlumeException(t("The phone did not answer in time"))
+            if (bad.get() > 0) throw PairlumeException(t("The network did not take the text"))
         } finally {
             c.unregisterReceiver(done)
         }

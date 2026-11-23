@@ -101,34 +101,34 @@ class Calls(private val c: Context, private val texts: Texts, private val tell: 
     fun answer(m: Message): Message {
         val req = m.longNumber("req")
         fun no(why: String) = message("call_error", "req" to req, "reason" to why)
-        if (!CallChoices(c).act) return no("Answering and making calls is off in Pairlume on the phone")
-        val t = c.getSystemService(TelecomManager::class.java) ?: return no("This phone has no calls")
+        if (!CallChoices(c).act) return no(t("Answering and making calls is off in Pairlume on the phone"))
+        val t = c.getSystemService(TelecomManager::class.java) ?: return no(t("This phone has no calls"))
         return try {
             when (m.text("what")) {
                 "answer" -> {
-                    if (state != TelephonyManager.EXTRA_STATE_RINGING) return no("Nothing rings")
+                    if (state != TelephonyManager.EXTRA_STATE_RINGING) return no(t("Nothing rings"))
                     @Suppress("DEPRECATION") t.acceptRingingCall()
                 }
                 "end" -> {
-                    if (state == TelephonyManager.EXTRA_STATE_IDLE) return no("There is no call")
-                    @Suppress("DEPRECATION") if (!t.endCall()) return no("Android did not end the call")
+                    if (state == TelephonyManager.EXTRA_STATE_IDLE) return no(t("There is no call"))
+                    @Suppress("DEPRECATION") if (!t.endCall()) return no(t("Android did not end the call"))
                 }
                 "dial" -> {
                     val n = m.text("number")
-                    if (!CallChoices.dialable(n)) return no("That is not a phone number")
-                    if (state != TelephonyManager.EXTRA_STATE_IDLE) return no("There is a call already")
+                    if (!CallChoices.dialable(n)) return no(t("That is not a phone number"))
+                    if (state != TelephonyManager.EXTRA_STATE_IDLE) return no(t("There is a call already"))
                     synchronized(this) { dialed = n }
                     t.placeCall(Uri.fromParts("tel", n, null), Bundle())
                 }
-                else -> return no("The phone does not know that")
+                else -> return no(t("The phone does not know that"))
             }
             message("call_done", "req" to req)
         } catch (e: PairlumeException) {
             no(e.message ?: "")
         } catch (_: SecurityException) {
-            no("Android does not let Pairlume do that")
+            no(t("Android does not let Pairlume do that"))
         } catch (_: Exception) {
-            no("The phone could not do that")
+            no(t("The phone could not do that"))
         }
     }
 }

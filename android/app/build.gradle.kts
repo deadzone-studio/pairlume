@@ -43,6 +43,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures { compose = true }
+    // the words of the app: share/lang/<code>.json, the same files the computer and the installer read
+    sourceSets.getByName("main").assets.srcDir("../../share")
+    androidResources { ignoreAssetsPatterns += "!*.py" }
     lint { abortOnError = true }
 }
 

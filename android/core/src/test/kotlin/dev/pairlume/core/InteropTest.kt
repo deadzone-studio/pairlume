@@ -104,15 +104,15 @@ class InteropTest {
             val computer = Link.open(id, "Kotlin phone", to, null).use { it.computer }
             Link.open(id, "Kotlin phone", to, computer).use { l ->
                 assertEquals("Desk", l.name)
-                assertEquals(emptySet<String>(), l.wire.expect("allowed").texts("caps"))
+                assertEquals(emptySet<String>(), l.wire.want("allowed").texts("caps"))
                 val battery = message("battery", "percent" to 42, "charging" to true)
                 l.wire.send(battery)
-                assertEquals("battery", l.wire.expect("denied").text("cap"))
+                assertEquals("battery", l.wire.want("denied").text("cap"))
                 ctl.ask("""{"cmd":"allow","device":"Kotlin phone","cap":"battery","on":true}""")
-                assertEquals(setOf("battery"), l.wire.expect("allowed").texts("caps"))
+                assertEquals(setOf("battery"), l.wire.want("allowed").texts("caps"))
                 l.wire.send(battery)
                 l.wire.send(message("ping"))
-                l.wire.expect("pong")
+                l.wire.want("pong")
                 val d = ctl.ask("""{"cmd":"status"}""")["devices"]!!.jsonArray.single().jsonObject
                 assertEquals("[42,true]", d["battery"].toString())
             }
@@ -151,17 +151,17 @@ class InteropTest {
             val digits = ctl.open()["digits"]!!.jsonPrimitive.content
             Link.open(id, "Kotlin phone", to, null).use { l ->
                 l.pairing().digits(digits)
-                l.wire.expect("allowed")
+                l.wire.want("allowed")
                 ctl.ask("""{"cmd":"allow","device":"Kotlin phone","cap":"sms","on":true}""")
-                l.wire.expect("allowed")
+                l.wire.want("allowed")
                 ctl.send("""{"cmd":"sms_threads","device":"Kotlin phone","before":null}""")
-                val q = l.wire.expect("sms_list")
+                val q = l.wire.want("sms_list")
                 assertEquals(null, q.maybeLong("before"))
                 val t = buildJsonObject { put("id", 7L); put("address", "+48 555 010 001"); put("name", "Zażółć"); put("snippet", "hej \uD83D\uDE04"); put("date", 1763800000000L); put("unread", 2) }
                 l.wire.send(JsonObject(message("sms_threads", "req" to q.longNumber("req"), "more" to false) + ("threads" to JsonArray(listOf(t)))))
                 assertEquals(t, ctl.line()["answer"]!!.jsonObject["threads"]!!.jsonArray.single())
                 ctl.send("""{"cmd":"sms_send","device":"Kotlin phone","to":"1","text":"x"}""")
-                val s = l.wire.expect("sms_send")
+                val s = l.wire.want("sms_send")
                 l.wire.send(message("sms_error", "req" to s.longNumber("req"), "reason" to "off"))
                 assertEquals("off", ctl.line()["error"]!!.jsonPrimitive.content)
             }
@@ -224,5 +224,15 @@ class PiecesTest {
         }
         assertTrue(Pairing.isDigits("012345"))
         listOf("12345", "1234567", "12345x", "١٢٣٤٥٦").forEach { assertFalse(Pairing.isDigits(it)) }
+    }
+}
+
+/** the next message of this type; the computer's Bluetooth address comes on a computer that has Bluetooth, and is skipped */
+private fun Wire.want(type: String): Message {
+    while (true) {
+        val m = receive()
+        if (m.type == "bluetooth") continue
+        if (m.type != type) throw PairlumeException("expected $type, got ${m.type}")
+        return m
     }
 }

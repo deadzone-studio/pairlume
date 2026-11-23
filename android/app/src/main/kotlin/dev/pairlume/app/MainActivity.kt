@@ -36,6 +36,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -64,6 +66,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var pairer: Pairer
 
     override fun onCreate(state: Bundle?) {
+        Lang.init(this)
         super.onCreate(state)
         enableEdgeToEdge()
         pairer = Pairer(this)
@@ -118,20 +121,20 @@ private fun Home(c: Computer, forget: () -> Unit) {
         Text(c.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Text(
             when {
-                LinkState.connected -> "Connected"
-                else -> "Looking for it on this network"
+                LinkState.connected -> t("Connected")
+                else -> t("Looking for it on this network")
             },
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(32.dp))
         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
             Column(Modifier.padding(20.dp)) {
-                Text("What the computer lets this phone do", fontWeight = FontWeight.SemiBold)
+                Text(t("What the computer lets this phone do"), fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(6.dp))
                 Text(
                     when {
-                        !LinkState.connected -> "Not connected"
-                        LinkState.allowed.isEmpty() -> "Nothing yet. On the computer: pairlume allow \"${Phone.name(context)}\" sms"
+                        !LinkState.connected -> t("Not connected")
+                        LinkState.allowed.isEmpty() -> t("Nothing yet. On the computer: pairlume allow \"%1\" sms", Phone.name(context))
                         else -> LinkState.allowed.sorted().joinToString(", ")
                     },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -145,21 +148,50 @@ private fun Home(c: Computer, forget: () -> Unit) {
         Spacer(Modifier.height(12.dp))
         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
             Column(Modifier.padding(20.dp)) {
-                Text("Keeps dropping out?", fontWeight = FontWeight.SemiBold)
+                Text(t("Keeps dropping out?"), fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(6.dp))
-                Text("Some phones stop apps in the background. Let Pairlume use the battery without limits.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton({ context.open(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) }) { Text("Battery settings") }
+                Text(t("Some phones stop apps in the background. Let Pairlume use the battery without limits."), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton({ context.open(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) }) { Text(t("Battery settings")) }
             }
         }
         Spacer(Modifier.height(20.dp))
-        TextButton({ sure = true }) { Text("Forget this computer") }
+        LangButton()
+        TextButton({ sure = true }) { Text(t("Forget this computer")) }
     }
     if (sure) AlertDialog(
         onDismissRequest = { sure = false },
-        title = { Text("Forget ${c.name}?") },
-        text = { Text("You can pair again later. The computer keeps this phone in its list until you unpair it there.") },
-        confirmButton = { TextButton({ sure = false; forget() }) { Text("Forget") } },
-        dismissButton = { TextButton({ sure = false }) { Text("Keep") } },
+        title = { Text(t("Forget %1?", c.name)) },
+        text = { Text(t("You can pair again later. The computer keeps this phone in its list until you unpair it there.")) },
+        confirmButton = { TextButton({ sure = false; forget() }) { Text(t("Forget")) } },
+        dismissButton = { TextButton({ sure = false }) { Text(t("Keep")) } },
+    )
+}
+
+/** the language of the app: the phone's own, or one of the files in share/lang */
+@Composable
+private fun LangButton(modifier: Modifier = Modifier) {
+    var open by remember { mutableStateOf(false) }
+    TextButton({ open = true }, modifier) { Text(t("Language: %1", if (Lang.chosen.isEmpty()) t("as the phone") else Lang.name(Lang.chosen))) }
+    if (open) AlertDialog(
+        onDismissRequest = { open = false },
+        title = { Text(t("Language")) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                (listOf("") + Lang.codes).forEach { code ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).selectable(Lang.chosen == code, role = Role.RadioButton) { Lang.choose(code); open = false }.padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(Lang.chosen == code, null)
+                        Spacer(Modifier.width(12.dp))
+                        Text(if (code.isEmpty()) t("As the phone (%1)", Lang.name(Lang.codes.firstOrNull { it == java.util.Locale.getDefault().language } ?: "en")) else Lang.name(code))
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(t("Translations are made by people who use Pairlume. Found a mistake? Tell us on GitHub."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = { TextButton({ open = false }) { Text(t("Close")) } },
     )
 }
 
@@ -182,11 +214,11 @@ private fun TextChoices(computer: String) {
     LifecycleResumeEffect(Unit) { read = choices.read; send = choices.send; onPauseOrDispose { } }
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
         Column(Modifier.padding(20.dp)) {
-            Text("Texts", fontWeight = FontWeight.SemiBold)
-            Choice("Show on $computer", "It asks for conversations when you open them there. Nothing is saved.", read) { on ->
+            Text(t("Texts"), fontWeight = FontWeight.SemiBold)
+            Choice(t("Show on %1", computer), t("It asks for conversations when you open them there. Nothing is saved."), read) { on ->
                 if (on) askRead.launch(Choices.READ + Manifest.permission.READ_CONTACTS) else { choices.read = false; read = false }
             }
-            Choice("Send from $computer", "Texts cost what your plan says. At most 8 a minute, never to short numbers.", send) { on ->
+            Choice(t("Send from %1", computer), t("Texts cost what your plan says. At most 8 a minute, never to short numbers."), send) { on ->
                 if (on) askSend.launch(Choices.SEND) else { choices.send = false; send = false }
             }
         }
@@ -211,11 +243,11 @@ private fun CallSwitches(computer: String) {
     LifecycleResumeEffect(Unit) { show = choices.show; act = choices.act; onPauseOrDispose { } }
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
         Column(Modifier.padding(20.dp)) {
-            Text("Calls", fontWeight = FontWeight.SemiBold)
-            Choice("Show on $computer", "Who calls, with the name and picture from your contacts. Nothing is saved.", show) { on ->
+            Text(t("Calls"), fontWeight = FontWeight.SemiBold)
+            Choice(t("Show on %1", computer), t("Who calls, with the name and picture from your contacts. Nothing is saved."), show) { on ->
                 if (on) askShow.launch(CallChoices.SHOW + Manifest.permission.READ_CONTACTS) else { choices.show = false; show = false }
             }
-            Choice("Answer and call from $computer", "It never calls codes with * or #.", act) { on ->
+            Choice(t("Answer and call from %1", computer), t("It never calls codes with * or #."), act) { on ->
                 if (on) askAct.launch(CallChoices.ACT) else { choices.act = false; act = false }
             }
             VoiceRow(computer)
@@ -238,16 +270,16 @@ private fun VoiceRow(computer: String) {
     }
     Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text("Voice on $computer")
+            Text(t("Voice on %1", computer))
             Text(
                 when {
-                    address == null -> "$computer has no Bluetooth, or is not connected"
-                    paired -> "Connected over Bluetooth. Calls you answer there are heard there."
-                    !Voice.on(context) -> "Turn Bluetooth on first"
-                    asked && !bonded -> "Say yes on both screens: the same code is on $computer"
-                    asked -> "Paired. Waiting for $computer to connect"
-                    bonded -> "Paired before, but not connected. Connect pairs it anew"
-                    else -> "Talk through the computer's speakers and microphone"
+                    address == null -> t("%1 has no Bluetooth, or is not connected", computer)
+                    paired -> t("Connected over Bluetooth. Calls you answer there are heard there.")
+                    !Voice.on(context) -> t("Turn Bluetooth on first")
+                    asked && !bonded -> t("Say yes on both screens: the same code is on %1", computer)
+                    asked -> t("Paired. Waiting for %1 to connect", computer)
+                    bonded -> t("Paired before, but not connected. Connect pairs it anew")
+                    else -> t("Talk through the computer's speakers and microphone")
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
@@ -256,7 +288,7 @@ private fun VoiceRow(computer: String) {
         if (address != null && !paired && Voice.on(context)) Button({
             if (Voice.permitted(context)) asked = Voice.pair(context, address)
             else if (Build.VERSION.SDK_INT >= 31) ask.launch(Manifest.permission.BLUETOOTH_CONNECT)
-        }) { Text("Connect") }
+        }) { Text(t("Connect")) }
     }
 }
 
@@ -279,7 +311,7 @@ private fun Lumen(one: Boolean) {
     val c = MaterialTheme.colorScheme
     val gap by animateFloatAsState(if (one) 0.24f else 0.62f, spring(dampingRatio = 0.45f, stiffness = 120f), label = "gap")
     val breath by rememberInfiniteTransition(label = "breath").animateFloat(0.94f, 1.06f, infiniteRepeatable(tween(1900, easing = EaseInOutSine), RepeatMode.Reverse), label = "breath")
-    Canvas(Modifier.size(220.dp, 140.dp).semantics { contentDescription = if (one) "Connected" else "Not connected" }) {
+    Canvas(Modifier.size(220.dp, 140.dp).semantics { contentDescription = if (one) t("Connected") else t("Not connected") }) {
         val r = size.height * 0.32f * breath
         val d = size.width * gap / 2
         listOf(-d to c.primary, d to c.tertiary).forEach { (x, color) ->
@@ -305,7 +337,7 @@ private fun Pair(pairer: Pairer) {
 
     val ready = rememberUpdatedState(found.filter { it.pairing })
     fun withComputer(f: (Found) -> Unit) = when (ready.value.size) {
-        0 -> pairer.say("No computer here is pairing. Start it there: pairlume-ui")
+        0 -> pairer.say(t("No computer here is pairing. Start it there: pairlume-ui"))
         1 -> f(ready.value.first())
         else -> choose = f
     }
@@ -330,36 +362,37 @@ private fun Pair(pairer: Pairer) {
             Spacer(Modifier.height(32.dp))
             when (step) {
                 Step.Idle -> {
-                    Title(when (way) { Way.Shake -> "Shake your phone"; Way.Qr -> "Scan the code"; Way.Digits -> "Type the digits" },
-                        ready.value.firstOrNull()?.let { "${it.name} is pairing" } ?: "Open pairing on your computer, on the same Wi-Fi")
+                    Title(when (way) { Way.Shake -> t("Shake your phone"); Way.Qr -> t("Scan the code"); Way.Digits -> t("Type the digits") },
+                        ready.value.firstOrNull()?.let { t("%1 is pairing", it.name) } ?: t("Open pairing on your computer, on the same Wi-Fi"))
                     Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) {
                         when (way) {
-                            Way.Shake -> if (shaker.available) Waiting() else Text("This phone has no motion sensor. Use the code or the digits.")
+                            Way.Shake -> if (shaker.available) Waiting() else Text(t("This phone has no motion sensor. Use the code or the digits."))
                             Way.Qr -> Camera { if (!pairer.busy) pairer.qr(it) }
                             Way.Digits -> Typing { d -> withComputer { pairer.digits(it, d) } }
                         }
                     }
-                    SingleChoiceSegmentedButtonRow(Modifier.padding(bottom = 16.dp)) {
-                        Way.entries.forEachIndexed { i, w -> SegmentedButton(way == w, { way = w }, SegmentedButtonDefaults.itemShape(i, Way.entries.size)) { Text(w.label) } }
+                    SingleChoiceSegmentedButtonRow(Modifier.padding(bottom = 4.dp)) {
+                        Way.entries.forEachIndexed { i, w -> SegmentedButton(way == w, { way = w }, SegmentedButtonDefaults.itemShape(i, Way.entries.size)) { Text(t(w.label)) } }
                     }
+                    LangButton(Modifier.padding(bottom = 8.dp))
                 }
                 Step.Connecting -> {
-                    Title("Connecting", "")
+                    Title(t("Connecting"), "")
                     Box(Modifier.weight(1f), Alignment.Center) { CircularProgressIndicator(Modifier.size(72.dp), strokeWidth = 6.dp) }
-                    TextButton(pairer::cancel) { Text("Stop") }
+                    TextButton(pairer::cancel) { Text(t("Stop")) }
                 }
                 is Step.Code -> {
-                    Title(step.name, "Is the same code on its screen?")
+                    Title(step.name, t("Is the same code on its screen?"))
                     Box(Modifier.weight(1f), Alignment.Center) { Digits(step.code) }
                     var armed by remember { mutableStateOf(false) }
                     LaunchedEffect(Unit) { delay(900); armed = true }
                     Row(Modifier.padding(bottom = 24.dp), Arrangement.spacedBy(12.dp)) {
-                        FilledTonalButton({ pairer.answer(false) }, enabled = armed) { Text("Not the same") }
-                        Button({ pairer.answer(true) }, enabled = armed) { Text("They match") }
+                        FilledTonalButton({ pairer.answer(false) }, enabled = armed) { Text(t("Not the same")) }
+                        Button({ pairer.answer(true) }, enabled = armed) { Text(t("They match")) }
                     }
                 }
                 is Step.Done -> {
-                    Title("Connected", step.name)
+                    Title(t("Connected"), step.name)
                     Box(Modifier.weight(1f), Alignment.Center) {
                         var one by remember { mutableStateOf(false) }
                         LaunchedEffect(Unit) { one = true }
@@ -367,9 +400,9 @@ private fun Pair(pairer: Pairer) {
                     }
                 }
                 is Step.Failed -> {
-                    Title("That did not work", step.why)
+                    Title(t("That did not work"), step.why)
                     Spacer(Modifier.weight(1f))
-                    Button(pairer::cancel, Modifier.padding(bottom = 24.dp)) { Text("Try again") }
+                    Button(pairer::cancel, Modifier.padding(bottom = 24.dp)) { Text(t("Try again")) }
                 }
             }
         }
@@ -377,7 +410,7 @@ private fun Pair(pairer: Pairer) {
     choose?.let { f ->
         AlertDialog(
             onDismissRequest = { choose = null },
-            title = { Text("Which computer?") },
+            title = { Text(t("Which computer?")) },
             text = { Column { ready.value.forEach { c -> TextButton({ choose = null; f(c) }, Modifier.fillMaxWidth()) { Text("${c.name} (${c.id})") } } } },
             confirmButton = {},
         )
@@ -442,9 +475,9 @@ private fun Typing(onDone: (String) -> Unit) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             singleLine = true,
             shape = RoundedCornerShape(24.dp),
-            modifier = Modifier.width(280.dp).semantics { contentDescription = "Six digits from the computer" },
+            modifier = Modifier.width(280.dp).semantics { contentDescription = t("Six digits from the computer") },
         )
-        Button({ val d = t; t = ""; onDone(d) }, enabled = t.length == 6) { Text("Pair") }
+        Button({ val d = t; t = ""; onDone(d) }, enabled = t.length == 6) { Text(t("Pair")) }
     }
 }
 
@@ -457,8 +490,8 @@ private fun Camera(onText: (String) -> Unit) {
         Scanner(Modifier.size(300.dp).clip(RoundedCornerShape(36.dp)), onText)
     } else {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("The camera is only used to read the code.", textAlign = TextAlign.Center)
-            Button({ ask.launch(Manifest.permission.CAMERA) }) { Text("Use the camera") }
+            Text(t("The camera is only used to read the code."), textAlign = TextAlign.Center)
+            Button({ ask.launch(Manifest.permission.CAMERA) }) { Text(t("Use the camera")) }
         }
     }
 }

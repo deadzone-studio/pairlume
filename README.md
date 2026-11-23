@@ -30,6 +30,13 @@ Your Android phone and your Hyprland desktop as one: texts, calls, notifications
 
 The details are in [docs/protocol.md](docs/protocol.md).
 
+## Languages
+
+English, Polski, Ślōnsko godka, Kaszëbsczi, Deutsch, Español, Français, Italiano, Português, Українська and Čeština, in
+the windows, the phone app and the installer. All the words are in [`share/lang`](share/lang), one file per language;
+`python3 share/lang/check.py` says what a file is missing. Apart from Polish these are first translations: corrections
+from people who speak them are very welcome.
+
 ## Install
 
 From the [releases](https://github.com/deadzone-studio/pairlume/releases): unpack `pairlume-…-linux-x86_64.zip` and run

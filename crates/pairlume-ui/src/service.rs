@@ -60,6 +60,22 @@ pub mod qobject {
         /// asks Hyprland to bring this window to the front
         #[qinvokable]
         fn front(self: &Service);
+        /// the words of a language for the windows (JSON: English -> words), from share/lang
+        #[qinvokable]
+        fn words(self: &Service, code: QString) -> QString;
+        /// the languages there are: JSON [[code, name in itself], ...]
+        #[qinvokable]
+        fn languages(self: &Service) -> QString;
+        /// the language chosen in the settings, "" for the system's
+        #[qinvokable]
+        #[cxx_name = "chosenLanguage"]
+        fn chosen_language(self: &Service) -> QString;
+        #[qinvokable]
+        #[cxx_name = "chooseLanguage"]
+        fn choose_language(self: &Service, code: QString);
+        /// starts another window of Pairlume (JSON list of arguments)
+        #[qinvokable]
+        fn open(self: &Service, args: QString);
         /// opens the texts window at the conversation with this number
         #[qinvokable]
         #[cxx_name = "writeTo"]
@@ -67,6 +83,21 @@ pub mod qobject {
     }
     impl cxx_qt::Threading for Service {}
 }
+
+/// share/lang: the words of every window, the phone app and the installer
+const LANGUAGES: [(&str, &str); 11] = [
+    ("en", include_str!("../../../share/lang/en.json")),
+    ("pl", include_str!("../../../share/lang/pl.json")),
+    ("szl", include_str!("../../../share/lang/szl.json")),
+    ("csb", include_str!("../../../share/lang/csb.json")),
+    ("de", include_str!("../../../share/lang/de.json")),
+    ("es", include_str!("../../../share/lang/es.json")),
+    ("fr", include_str!("../../../share/lang/fr.json")),
+    ("it", include_str!("../../../share/lang/it.json")),
+    ("pt", include_str!("../../../share/lang/pt.json")),
+    ("uk", include_str!("../../../share/lang/uk.json")),
+    ("cs", include_str!("../../../share/lang/cs.json")),
+];
 
 #[derive(Default)]
 pub struct ServiceRust {
@@ -218,6 +249,60 @@ impl qobject::Service {
     fn front(&self) {
         let pid = format!("pid:{}", std::process::id());
         let _ = std::process::Command::new("hyprctl").args(["dispatch", "focuswindow", &pid]).output();
+    }
+
+    fn words(&self, code: QString) -> QString {
+        let code = String::from(&code);
+        let file = LANGUAGES.iter().find(|(c, _)| *c == code).map(|(_, f)| *f).unwrap_or("{}");
+        let ui = serde_json::from_str::<serde_json::Value>(file).ok().and_then(|v| v.get("ui").cloned()).unwrap_or_default();
+        QString::from(ui.to_string().as_str())
+    }
+
+    fn languages(&self) -> QString {
+        let list: Vec<(String, String)> = LANGUAGES
+            .iter()
+            .map(|(c, f)| {
+                let name =
+                    serde_json::from_str::<serde_json::Value>(f).ok().and_then(|v| v.get("name")?.as_str().map(String::from));
+                ((*c).to_string(), name.unwrap_or_else(|| (*c).to_string()))
+            })
+            .collect();
+        QString::from(serde_json::to_string(&list).unwrap_or_default().as_str())
+    }
+
+    fn chosen_language(&self) -> QString {
+        let v = config_dir().ok().and_then(|d| std::fs::read_to_string(d.join("ui.json")).ok());
+        let code = v.and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()?.get("lang")?.as_str().map(String::from));
+        QString::from(code.filter(|c| LANGUAGES.iter().any(|(k, _)| k == c)).unwrap_or_default().as_str())
+    }
+
+    fn choose_language(&self, code: QString) {
+        let code = String::from(&code);
+        let Ok(dir) = config_dir() else { return };
+        let path = dir.join("ui.json");
+        let mut v = std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+            .unwrap_or_else(|| serde_json::json!({}));
+        if let Some(o) = v.as_object_mut() {
+            if code.is_empty() {
+                o.remove("lang");
+            } else if LANGUAGES.iter().any(|(k, _)| *k == code) {
+                o.insert("lang".into(), code.into());
+            }
+        }
+        let _ = std::fs::create_dir_all(&dir);
+        let tmp = path.with_extension("json.tmp");
+        if std::fs::write(&tmp, v.to_string()).is_ok() {
+            let _ = std::fs::rename(tmp, path);
+        }
+    }
+
+    fn open(&self, args: QString) {
+        let args: Vec<String> = serde_json::from_str(&String::from(&args)).unwrap_or_default();
+        if let Ok(me) = std::env::current_exe() {
+            let _ = std::process::Command::new(me).args(args).spawn();
+        }
     }
 
     fn write_to(&self, address: QString) {

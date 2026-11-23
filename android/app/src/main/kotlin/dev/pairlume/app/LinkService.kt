@@ -70,9 +70,10 @@ class LinkService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        Lang.init(this)
         current = this
         val nm = getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel("link", getString(R.string.link_channel), NotificationManager.IMPORTANCE_LOW))
+        nm.createNotificationChannel(NotificationChannel("link", t("Connection"), NotificationManager.IMPORTANCE_LOW))
         startForeground(1, note(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
         registerReceiver(power, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         // sent by Android only (READ_PHONE_STATE)
@@ -111,7 +112,7 @@ class LinkService : Service() {
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return Notification.Builder(this, "link")
             .setSmallIcon(R.drawable.ic_note)
-            .setContentTitle(getString(if (LinkState.connected) R.string.link_connected else R.string.link_looking, c))
+            .setContentTitle(if (LinkState.connected) t("Connected to %1", c) else t("Looking for %1", c))
             .setContentIntent(open)
             .setOngoing(true)
             .build()

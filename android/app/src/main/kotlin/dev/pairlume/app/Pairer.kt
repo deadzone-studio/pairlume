@@ -48,7 +48,7 @@ class Pairer(context: Context) {
                     Step.Done(l.name)
                 }
             } catch (e: Exception) {
-                Step.Failed(if (e is PairlumeException) e.message ?: "" else "The computer did not answer. Is it pairing, on the same Wi-Fi?")
+                Step.Failed(if (e is PairlumeException) t(e.message ?: "") else t("The computer did not answer. Is it pairing, on the same Wi-Fi?"))
             }
             main.post {
                 if (round != me) return@post
@@ -70,8 +70,8 @@ class Pairer(context: Context) {
     }
 
     fun digits(f: Found, digits: String) {
-        if (!Pairing.isDigits(digits)) { step = Step.Failed("The code has six digits"); return }
-        if (!Saved(app).firstTry(digits)) { step = Step.Failed("These digits were already tried. Make new ones on the computer"); return }
+        if (!Pairing.isDigits(digits)) { step = Step.Failed(t("The code has six digits")); return }
+        if (!Saved(app).firstTry(digits)) { step = Step.Failed(t("These digits were already tried. Make new ones on the computer")); return }
         go(f.address, null) { l, _ -> l.pairing().digits(digits) }
     }
 

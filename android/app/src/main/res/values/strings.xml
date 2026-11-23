@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Pairlume</string>
-    <string name="link_channel">Connection</string>
-    <string name="link_connected">Connected to %1$s</string>
-    <string name="link_looking">Looking for %1$s</string>
 </resources>
