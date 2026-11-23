@@ -8,7 +8,7 @@ default-members = ["crates/pairlume-core", "crates/pairlumed", "crates/pairlume-
 version = "0.0.1"
 edition = "2024"
 license = "GPL-3.0-or-later"
-repository = "https://github.com/M4rtwy/pairlume"
+repository = "https://github.com/deadzone-studio/pairlume"
 
 [workspace.dependencies]
 anyhow = "1"

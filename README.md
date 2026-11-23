@@ -32,7 +32,7 @@ The details are in [docs/protocol.md](docs/protocol.md).
 
 ## Install
 
-From the [releases](https://github.com/M4rtwy/pairlume/releases): unpack `pairlume-…-linux-x86_64.zip` and run
+From the [releases](https://github.com/deadzone-studio/pairlume/releases): unpack `pairlume-…-linux-x86_64.zip` and run
 `./install.sh` (it puts the programs in `~/.local/bin` and starts the service with your session; `./install.sh --remove`
 takes it away). Install `Pairlume-….apk` on the phone. Releases are early previews until 0.1.
 
