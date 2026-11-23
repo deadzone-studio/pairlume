@@ -43,6 +43,10 @@ pub async fn start(d: Arc<Daemon>) {
 
 /// a paired phone asks to be paired over Bluetooth too
 pub async fn open(d: &Arc<Daemon>, fp: Fingerprint) -> Result<()> {
+    // asked again while it is open: the same window
+    if lock(d).waiting.is_some_and(|(f, _)| f == fp) {
+        return Ok(());
+    }
     let s = bluer::Session::new().await?;
     let adapter = s.default_adapter().await?;
     let number = {
@@ -65,6 +69,9 @@ pub async fn open(d: &Arc<Daemon>, fp: Fingerprint) -> Result<()> {
     let handle = s.register_agent(agent).await.context("Bluetooth did not take the agent")?;
     adapter.set_pairable_timeout(WINDOW.as_secs() as u32).await?;
     adapter.set_pairable(true).await?;
+    // a computer without any paired device does not even answer a phone that knows its address
+    adapter.set_discoverable_timeout(WINDOW.as_secs() as u32).await?;
+    adapter.set_discoverable(true).await?;
     lock(d).agent = Some(handle);
     info!("Bluetooth pairing open for {}", fp.short());
     let d = d.clone();
@@ -88,6 +95,7 @@ async fn close(d: &Daemon, number: u64) {
     drop(agent);
     if let Ok(a) = async { bluer::Session::new().await?.default_adapter().await }.await {
         let _ = a.set_pairable(false).await;
+        let _ = a.set_discoverable(false).await;
     }
 }
 
@@ -105,6 +113,7 @@ async fn confirm(d: &Arc<Daemon>, r: RequestConfirmation) -> Result<(), ReqError
     }
     .await
     .unwrap_or_else(|_| r.device.to_string());
+    info!("Bluetooth code for {name}");
     d.tell(Event::BtCode { id: fp, name: pairlume_core::store::clean_name(&name), code: format!("{:06}", r.passkey) });
     let yes = tokio::time::timeout(Duration::from_secs(60), rx).await.ok().and_then(Result::ok).unwrap_or(false);
     d.tell(Event::BtDone { id: fp, ok: yes });
