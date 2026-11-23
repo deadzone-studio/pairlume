@@ -13,9 +13,9 @@ Card {
     signal later
     signal reply
     signal copy(string text)
-    title: of ? texts.title(of) : texts.online ? texts.deviceName : Tr.t("Not connected")
+    title: of ? texts.title(of) : texts.online || texts.blocked ? texts.deviceName : Tr.t("Not connected")
     line: of ? (code !== "" ? Tr.t("a code, %1").arg(texts.when(of.date)) : texts.ago(of.date))
-             : texts.online ? Tr.t("Nobody is waiting") : ""
+             : texts.online ? Tr.t("Nobody is waiting") : texts.blocked ? Tr.t("connected") : ""
     Item {
         id: stage
         anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: m.below + 8; bottom: pills.top; bottomMargin: 20 }
@@ -73,8 +73,8 @@ Card {
             lineHeight: 1.15
         }
         // nobody: the phone itself
-        Rings { visible: m.of === null && !m.texts.online; on: visible; anchors.centerIn: parent; width: 280; height: 280 }
-        Phone { visible: m.of === null; anchors.centerIn: parent; glow: m.texts.online ? 1 : 0; Behavior on glow { NumberAnimation { duration: Theme.normal } } }
+        Rings { visible: m.of === null && !m.texts.online && !m.texts.blocked; on: visible; anchors.centerIn: parent; width: 280; height: 280 }
+        Phone { visible: m.of === null; anchors.centerIn: parent; glow: m.texts.online || m.texts.blocked ? 1 : 0; Behavior on glow { NumberAnimation { duration: Theme.normal } } }
         Text {
             visible: m.of === null
             anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom }
@@ -82,7 +82,7 @@ Card {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             textFormat: Text.PlainText
-            text: !m.texts.online ? m.texts.trouble : m.texts.battery >= 0 ? Tr.t("battery %1%").arg(m.texts.battery) + (m.texts.charging ? ", " + Tr.t("charging") : "") : ""
+            text: m.texts.blocked ? Tr.t("Texts need a yes from this computer too, not only from the phone.") : !m.texts.online ? m.texts.trouble : m.texts.battery >= 0 ? Tr.t("battery %1%").arg(m.texts.battery) + (m.texts.charging ? ", " + Tr.t("charging") : "") : ""
             color: Theme.dim
             font.pixelSize: 14
         }
@@ -94,6 +94,7 @@ Card {
         anchors { bottom: parent.bottom; bottomMargin: 34; horizontalCenter: parent.horizontalCenter }
         height: 42
         spacing: 10
+        Pill { visible: m.of === null && m.texts.blocked; filled: true; text: Tr.t("Allow texts"); onClicked: m.texts.allowSms() }
         Pill { visible: m.of !== null; text: m.code === "" ? Tr.t("Later") : Tr.t("Conversation"); onClicked: m.code === "" ? m.later() : m.reply() }
         Pill { visible: m.of !== null; filled: true; text: m.code === "" ? Tr.t("Reply") : Tr.t("Copy code"); onClicked: m.code === "" ? m.reply() : m.copy(m.code) }
     }

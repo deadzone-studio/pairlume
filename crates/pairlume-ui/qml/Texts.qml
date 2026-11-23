@@ -9,6 +9,8 @@ Item {
     property string device
     property string deviceName
     property bool online: false
+    // the phone is there, but this computer has not said yes to texts
+    property bool blocked: false
     property int battery: -1
     property bool charging: false
     // conversations with something to read
@@ -61,6 +63,7 @@ Item {
         return ""
     }
     function ask(tag, r) { service.askFor(tag, JSON.stringify(r)) }
+    function allowSms() { if (device !== "") ask("allow", { cmd: "allow", device: device, cap: "sms", on: true }) }
     function look() { ask("status", { cmd: "status" }) }
     function refresh() { if (!online) return; loading = threads.count === 0; ask("threads", { cmd: "sms_threads", device: device, before: null }) }
     function older() { if (more && !loading && threads.count > 0) { loading = true; ask("older", { cmd: "sms_threads", device: device, before: threads.get(threads.count - 1).date }) } }
@@ -119,13 +122,15 @@ Item {
                 tx.device = s ? s.id : ""
                 tx.deviceName = s ? s.name : ""
                 tx.online = !!(s && s.online && may)
+                tx.blocked = !!(s && s.online && !may)
                 tx.battery = s && s.battery ? s.battery[0] : -1
                 tx.charging = !!(s && s.battery && s.battery[1])
                 tx.trouble = !s ? Tr.t("No phone is paired yet") : !s.online ? Tr.t("%1 is not connected").arg(s.name)
-                           : !may ? Tr.t("Texts are off for %1. To turn them on:\npairlume allow \"%1\" sms").arg(s.name) : ""
+                           : !may ? Tr.t("Texts are off on this computer") : ""
                 if (tx.device !== was) { if (tx.online) tx.refresh(); if (was !== "" && tx.device !== "") { tx.threads.clear(); tx.leave() } }
                 return
             }
+            if (kind === "allow") { if (r.why) tx.trouble = r.why; tx.look(); return }
             const a = r.answer
             if (kind === "threads" || kind === "older") {
                 if (!a) { tx.trouble = r.why || ""; tx.loading = false; return }

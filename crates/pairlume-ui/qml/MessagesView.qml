@@ -40,14 +40,14 @@ Item {
         Behavior on opacity { NumberAnimation { duration: Theme.quick } }
     }
     Turn {
-        on: v.wide || (!v.talking && !v.caller)
+        on: v.wide || (!v.talking && !v.caller && !v.texts.blocked)
         from: -24
         width: v.wide ? Math.max(340, Math.min(420, v.width * 0.36)) : v.width
         ListCard { id: people; alone: !v.wide; solid: v.solid; anchors.fill: parent; texts: v.texts; onChosen: t => v.go(t) }
         id: first
     }
     Turn {
-        on: !v.talking && (v.wide || v.caller !== null)
+        on: !v.talking && (v.wide || v.caller !== null || v.texts.blocked)
         anchors { left: v.wide ? first.right : parent.left; leftMargin: v.wide ? 12 : 0; right: parent.right }
         Moment { solid: v.solid; anchors.fill: parent; texts: v.texts; of: v.wide ? v.waiter : v.caller; onLater: v.putOff(of); onReply: v.go(of); onCopy: t => v.copied(t) }
     }
