@@ -7,7 +7,7 @@ pub mod server;
 use anyhow::{Context, Result, bail};
 use pairlume_core::{
     identity::{Fingerprint, Identity},
-    message::{Capability, Msg, Text, Thread},
+    message::{CallState, Capability, Msg, Text, Thread},
     pairing::{self, QrCode},
     store::Store,
 };
@@ -84,6 +84,15 @@ pub enum Event {
         thread: Thread,
         message: Text,
     },
+    Call {
+        id: Fingerprint,
+        state: CallState,
+        number: String,
+        name: String,
+        missed: bool,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        png: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -93,6 +102,16 @@ pub struct DeviceStatus {
     pub online: bool,
     pub battery: Option<(u8, bool)>,
     pub allowed: Vec<Capability>,
+    /// the call there is now, for a window that opens in the middle of it
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub call: Option<CallNow>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CallNow {
+    pub state: CallState,
+    pub number: String,
+    pub name: String,
 }
 
 struct Session {
@@ -103,6 +122,7 @@ struct Session {
     battery: Option<(u8, bool)>,
     /// questions the phone has not answered yet
     asked: BTreeMap<u64, oneshot::Sender<Msg>>,
+    call: Option<CallNow>,
 }
 
 /// the minutes in which an unknown phone may pair. Digits and secret are for one try
@@ -208,6 +228,7 @@ impl Daemon {
                     online: s.is_some(),
                     battery: s.and_then(|s| s.battery),
                     allowed: d.allowed.iter().copied().collect(),
+                    call: s.and_then(|s| s.call.clone()).filter(|_| d.allowed.contains(&Capability::Calls)),
                 }
             })
             .collect()
@@ -254,7 +275,7 @@ impl Daemon {
             s.asked.remove(&req);
         }
         match r.context("the phone did not answer")?.context("the phone went away")? {
-            Msg::SmsError { reason, .. } => bail!(reason),
+            Msg::SmsError { reason, .. } | Msg::CallError { reason, .. } => bail!(reason),
             m => Ok(m),
         }
     }

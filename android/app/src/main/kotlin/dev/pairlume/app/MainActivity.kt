@@ -141,6 +141,8 @@ private fun Home(c: Computer, forget: () -> Unit) {
         Spacer(Modifier.height(12.dp))
         TextChoices(c.name)
         Spacer(Modifier.height(12.dp))
+        CallSwitches(c.name)
+        Spacer(Modifier.height(12.dp))
         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
             Column(Modifier.padding(20.dp)) {
                 Text("Keeps dropping out?", fontWeight = FontWeight.SemiBold)
@@ -186,6 +188,35 @@ private fun TextChoices(computer: String) {
             }
             Choice("Send from $computer", "Texts cost what your plan says. At most 8 a minute, never to short numbers.", send) { on ->
                 if (on) askSend.launch(Choices.SEND) else { choices.send = false; send = false }
+            }
+        }
+    }
+}
+
+/** calls: shown on the computer, and answered or made from it */
+@Composable
+private fun CallSwitches(computer: String) {
+    val context = LocalContext.current
+    val choices = remember { CallChoices(context) }
+    var show by remember { mutableStateOf(choices.show) }
+    var act by remember { mutableStateOf(choices.act) }
+    val askShow = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { got ->
+        choices.show = CallChoices.SHOW.all { got[it] == true || context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+        show = choices.show
+    }
+    val askAct = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { got ->
+        choices.act = CallChoices.ACT.all { got[it] == true || context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+        act = choices.act
+    }
+    LifecycleResumeEffect(Unit) { show = choices.show; act = choices.act; onPauseOrDispose { } }
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
+        Column(Modifier.padding(20.dp)) {
+            Text("Calls", fontWeight = FontWeight.SemiBold)
+            Choice("Show on $computer", "Who calls, with the name and picture from your contacts. Nothing is saved.", show) { on ->
+                if (on) askShow.launch(CallChoices.SHOW + Manifest.permission.READ_CONTACTS) else { choices.show = false; show = false }
+            }
+            Choice("Answer and call from $computer", "The voice stays on the phone. It never calls codes with * or #.", act) { on ->
+                if (on) askAct.launch(CallChoices.ACT) else { choices.act = false; act = false }
             }
         }
     }

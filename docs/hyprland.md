@@ -1,7 +1,7 @@
 # Hyprland
 
 `pairlume-ui` opens the pairing window, `pairlume-ui messages` the texts in a window, `pairlume-ui panel` at the edge of
-the screen, `pairlume-ui bubbles` as faces. All but `messages` are layers called `pairlume`.
+the screen, `pairlume-ui bubbles` as faces, and `pairlume-ui calls` waits for the phone to ring. All but `messages` are layers called `pairlume`.
 
 ## Colors from the wallpaper
 
@@ -25,3 +25,14 @@ layers and writes nothing to your config. Without blur they are nearly solid, an
 
 `Ctrl+K` searches, `Alt+Down` and `Alt+Up` go through the conversations, `Alt+1` to `Alt+9` open one, `Ctrl+Shift+C` copies the
 code that came today, `Shift+Enter` starts a new line, `Esc` goes back.
+
+## Calls when the phone rings
+
+`pairlume-ui calls` stays in the background and shows the call at the top of the screen. Start it with the desktop, in
+`hyprland.conf`:
+
+```
+exec-once = pairlume-ui calls
+```
+
+Calls need a yes from both sides: `pairlume allow "<phone>" calls` here, and the two switches under Calls in the app.

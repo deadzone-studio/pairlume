@@ -44,6 +44,7 @@ class LinkService : Service() {
     @Volatile private var battery: Message? = null
     @Volatile private var seenAt: InetSocketAddress? = null
     private val texts by lazy { Texts(applicationContext) }
+    private val calls by lazy { Calls(applicationContext, texts) { m -> say(m) } }
     // one at a time, in the order the computer asked
     private val answers = Executors.newSingleThreadExecutor()
     private lateinit var discovery: Discovery
@@ -71,6 +72,8 @@ class LinkService : Service() {
         nm.createNotificationChannel(NotificationChannel("link", getString(R.string.link_channel), NotificationManager.IMPORTANCE_LOW))
         startForeground(1, note(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
         registerReceiver(power, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        // sent by Android only (READ_PHONE_STATE)
+        androidx.core.content.ContextCompat.registerReceiver(this, calls.hear, IntentFilter(android.telephony.TelephonyManager.ACTION_PHONE_STATE_CHANGED), androidx.core.content.ContextCompat.RECEIVER_EXPORTED)
         getSystemService(ConnectivityManager::class.java).registerDefaultNetworkCallback(network)
         discovery = Discovery(this) { list ->
             val c = Saved(this).computer ?: return@Discovery
@@ -93,6 +96,7 @@ class LinkService : Service() {
         link?.let { l -> Thread { l.close() }.start() }
         discovery.stop()
         unregisterReceiver(power)
+        unregisterReceiver(calls.hear)
         getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(network)
         LinkState.connected = false
         LinkState.allowed = emptySet()
@@ -177,6 +181,10 @@ class LinkService : Service() {
                         // a battery that was refused before is told again
                         battery?.let { if ("battery" in caps) l.wire.send(it) }
                     }
+                    "call_do" -> {
+                        val q = m
+                        answers.execute { try { l.wire.send(calls.answer(q)) } catch (_: Exception) { l.close() } }
+                    }
                     "sms_list", "sms_read", "sms_photos", "sms_send" -> {
                         val q = m
                         answers.execute {
@@ -190,6 +198,12 @@ class LinkService : Service() {
             l.close()
             writer.interrupt()
         }
+    }
+
+    /** something the phone tells by itself, after the answers that are on their way */
+    private fun say(m: Message) {
+        val l = link ?: return
+        if (running) answers.execute { try { l.wire.send(m) } catch (_: Exception) { } }
     }
 
     private fun tell(from: String, body: String) {

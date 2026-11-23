@@ -2,7 +2,7 @@
 //! The local socket for windows and the command line: one JSON per line. Only the same user may connect.
 use crate::{Daemon, DeviceStatus, Event, PAIRING_TIME};
 use anyhow::{Context, Result, bail};
-use pairlume_core::message::{Capability, Msg};
+use pairlume_core::message::{CallAction, Capability, Msg};
 use serde::{Deserialize, Serialize};
 use std::{
     os::unix::fs::{MetadataExt, PermissionsExt},
@@ -49,6 +49,13 @@ pub enum Request {
         device: String,
         to: String,
         text: String,
+    },
+    /// answer, end, or call a number
+    Call {
+        device: String,
+        what: CallAction,
+        #[serde(default)]
+        number: Option<String>,
     },
     /// events from now on, until the connection is closed
     Watch,
@@ -129,6 +136,19 @@ async fn client(d: Arc<Daemon>, s: UnixStream) -> Result<()> {
     }
 }
 
+/// a number the phone may call: digits with + and spaces, 3 to 15 digits, nothing that dials codes (* #)
+pub fn dialable(n: &str) -> Result<String> {
+    let n = n.trim();
+    let digits = n.chars().filter(char::is_ascii_digit).count();
+    if !(3..=15).contains(&digits)
+        || !n.chars().all(|c| c.is_ascii_digit() || " +-()".contains(c))
+        || n.rfind('+').is_some_and(|i| i > 0)
+    {
+        bail!("that is not a phone number");
+    }
+    Ok(n.into())
+}
+
 async fn write<T: Serialize>(w: &mut (impl AsyncWriteExt + Unpin), v: &T) -> Result<()> {
     let mut b = serde_json::to_vec(v)?;
     b.push(b'\n');
@@ -163,6 +183,14 @@ async fn run(d: &Arc<Daemon>, r: Request) -> Result<Reply> {
                 bail!("a text has 1 to 2000 characters");
             }
             out.answer = Some(d.ask(&fp, Capability::Sms, |req| Msg::SmsSend { req, to, text }).await?);
+        }
+        Request::Call { device, what, number } => {
+            let fp = d.find(&device)?;
+            let number = match what {
+                CallAction::Dial => Some(dialable(number.as_deref().unwrap_or(""))?),
+                _ => None,
+            };
+            out.answer = Some(d.ask(&fp, Capability::Calls, |req| Msg::CallDo { req, what, number }).await?);
         }
         Request::Watch => unreachable!("handled by client()"),
     }

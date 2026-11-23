@@ -98,6 +98,9 @@ class Texts(private val c: Context) {
         }
     }
 
+    fun nameOf(address: String) = synchronized(names) { name(address) }
+    fun photoOf(address: String) = synchronized(names) { photo(address) }
+
     private fun name(address: String): String = names.getOrPut(address) {
         if (c.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED || address.none(Char::isDigit)) return@getOrPut ""
         c.contentResolver.query(

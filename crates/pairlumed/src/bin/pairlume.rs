@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
-use pairlume_core::message::Capability;
+use pairlume_core::message::{CallAction, Capability};
 use pairlumed::{
     Closed, Event,
     control::{Reply, Request},
@@ -36,6 +36,8 @@ enum Cmd {
     Deny { device: String, what: Capability },
     /// forget a phone
     Unpair { device: String },
+    /// answer the call, end it (or say no to it), or call a number: call PHONE answer|end|dial [NUMBER]
+    Call { device: String, what: String, number: Option<String> },
     /// print what happens, one JSON per line
     Watch,
 }
@@ -138,6 +140,15 @@ fn main() -> Result<()> {
         }
         Cmd::Allow { device, what } => drop(Link::new()?.ask(&Request::Allow { device, cap: what, on: true })?),
         Cmd::Deny { device, what } => drop(Link::new()?.ask(&Request::Allow { device, cap: what, on: false })?),
+        Cmd::Call { device, what, number } => {
+            let what = match what.as_str() {
+                "answer" => CallAction::Answer,
+                "end" => CallAction::End,
+                "dial" => CallAction::Dial,
+                _ => bail!("answer, end or dial"),
+            };
+            drop(Link::new()?.ask(&Request::Call { device, what, number })?)
+        }
         Cmd::Unpair { device } => drop(Link::new()?.ask(&Request::Unpair { device })?),
         Cmd::Watch => {
             let mut l = Link::new()?;

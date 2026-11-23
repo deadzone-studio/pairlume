@@ -11,6 +11,17 @@ Item {
     property bool online: false
     // the phone is there, but this computer has not said yes to texts
     property bool blocked: false
+    // calls: may this phone use them, and the call there is now ({ state, number, name, missed, png, since }), or null
+    property bool mayCall: false
+    property var call: null
+    property string callTrouble
+    signal called
+    function callDo(what, number) {
+        if (device === "") return
+        const r = { cmd: "call", device: device, what: what }
+        if (number) r.number = number
+        ask("call", r)
+    }
     property int battery: -1
     property bool charging: false
     // conversations with something to read
@@ -104,6 +115,14 @@ Item {
         function onHappened(json) {
             const e = JSON.parse(json)
             if (["online", "offline", "paired", "unpaired", "allowed", "battery"].includes(e.event)) tx.look()
+            if (e.event === "call" && e.id === tx.device) {
+                const was = tx.call
+                const c = { state: e.state, number: e.number, name: e.name, missed: e.missed, png: e.png ? "data:image/png;base64," + e.png : (was && was.number === e.number ? was.png : ""),
+                            since: was && was.state === e.state ? was.since : Date.now() }
+                if (e.png) { const f = Object.assign({}, tx.faces); f[e.number] = c.png; tx.faces = f }
+                tx.call = c
+                tx.called()
+            }
             if (e.event === "sms" && e.id === tx.device) {
                 const here = e.thread.id === tx.open
                 tx.up(Object.assign({}, e.thread, { unread: here ? 0 : e.thread.unread }))
@@ -123,6 +142,10 @@ Item {
                 tx.deviceName = s ? s.name : ""
                 tx.online = !!(s && s.online && may)
                 tx.blocked = !!(s && s.online && !may)
+                tx.mayCall = !!(s && s.online && s.allowed.includes("calls"))
+                if (!tx.mayCall) tx.call = null
+                // a window opened in the middle of a call
+                else if (s.call && !tx.call) { tx.call = { state: s.call.state, number: s.call.number, name: s.call.name, missed: false, png: "", since: Date.now() }; tx.wantFace({ name: s.call.name, address: s.call.number }); tx.called() }
                 tx.battery = s && s.battery ? s.battery[0] : -1
                 tx.charging = !!(s && s.battery && s.battery[1])
                 tx.trouble = !s ? Tr.t("No phone is paired yet") : !s.online ? Tr.t("%1 is not connected").arg(s.name)
@@ -130,7 +153,8 @@ Item {
                 if (tx.device !== was) { if (tx.online) tx.refresh(); if (was !== "" && tx.device !== "") { tx.threads.clear(); tx.leave() } }
                 return
             }
-            if (kind === "allow") { if (r.why) tx.trouble = r.why; tx.look(); return }
+            if (kind === "call") { if (r.error || r.why) tx.callTrouble = r.error || r.why; return }
+            if (kind === "allow") { if (r.error || r.why) tx.trouble = r.error || r.why; tx.look(); return }
             const a = r.answer
             if (kind === "threads" || kind === "older") {
                 if (!a) { tx.trouble = r.why || ""; tx.loading = false; return }

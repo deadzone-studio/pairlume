@@ -51,6 +51,10 @@ pub mod qobject {
         /// the squares of a QR code: one line per row, 0 and 1
         #[qinvokable]
         fn qr(self: &Service, text: QString) -> QString;
+        /// opens the texts window at the conversation with this number
+        #[qinvokable]
+        #[cxx_name = "writeTo"]
+        fn write_to(self: &Service, address: QString);
     }
     impl cxx_qt::Threading for Service {}
 }
@@ -172,6 +176,12 @@ impl qobject::Service {
             let text = QString::from(text.as_str());
             let _ = qt.queue(move |o| o.replied(tag, text));
         });
+    }
+
+    fn write_to(&self, address: QString) {
+        if let Ok(me) = std::env::current_exe() {
+            let _ = std::process::Command::new(me).args(["messages", "--to", &String::from(&address)]).spawn();
+        }
     }
 
     fn qr(&self, text: QString) -> QString {

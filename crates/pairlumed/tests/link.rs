@@ -362,3 +362,62 @@ async fn pictures_that_are_not_pictures_are_dropped() {
         m => panic!("{m:?}"),
     }
 }
+
+// ---------- calls ----------
+#[tokio::test]
+async fn calls_need_the_permission_and_are_cleaned() {
+    use pairlume_core::message::{CallAction, CallState};
+    let mut pc = Pc::new().await;
+    let id = Identity::generate().unwrap();
+    let mut l = pc.paired(&id).await;
+    let fp = id.fingerprint;
+    let ring = |name: &str| Msg::Call {
+        state: CallState::Ringing,
+        number: "+48 555 010 001".into(),
+        name: name.into(),
+        missed: false,
+        png: Some("PHN2Zz4=".into()),
+    };
+    send(&mut l.stream, &ring("Ola")).await.unwrap();
+    loop {
+        if let Msg::Denied { cap } = next(&mut l).await.unwrap() {
+            assert_eq!(cap, Capability::Calls);
+            break;
+        }
+    }
+    pc.d.allow(&fp, Capability::Calls, true).unwrap();
+    send(&mut l.stream, &ring("Ola\u{202e}\x1b[2J")).await.unwrap();
+    let (name, png) = pc
+        .wait(|e| match e {
+            Event::Call { name, png, state: CallState::Ringing, .. } => Some((name.clone(), png.clone())),
+            _ => None,
+        })
+        .await;
+    assert_eq!(name, "Ola[2J");
+    let now = pc.d.status()[0].call.clone().expect("the call is in the status");
+    assert_eq!(now.state, CallState::Ringing);
+    assert_eq!(png, None, "not a picture");
+    let d = pc.d.clone();
+    let q = tokio::spawn(async move {
+        d.ask(&fp, Capability::Calls, |req| Msg::CallDo { req, what: CallAction::Answer, number: None }).await
+    });
+    loop {
+        if let Msg::CallDo { req, what, .. } = next(&mut l).await.unwrap() {
+            assert_eq!(what, CallAction::Answer);
+            send(&mut l.stream, &Msg::CallError { req, reason: "Nothing rings".into() }).await.unwrap();
+            break;
+        }
+    }
+    assert_eq!(q.await.unwrap().unwrap_err().to_string(), "Nothing rings");
+}
+
+#[test]
+fn only_phone_numbers_are_dialed() {
+    use pairlumed::control::dialable;
+    for ok in ["+48 555 010 001", "112", "(555) 010-0001"] {
+        assert!(dialable(ok).is_ok(), "{ok}");
+    }
+    for no in ["", "12", "*#06#", "555+1", "1234567890123456", "tel:555010001", "555;1"] {
+        assert!(dialable(no).is_err(), "{no}");
+    }
+}

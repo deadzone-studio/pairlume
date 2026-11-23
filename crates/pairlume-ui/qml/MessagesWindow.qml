@@ -20,7 +20,7 @@ Window {
         Rectangle { anchors.fill: parent; color: Theme.ground }
         MessagesView { id: view; anchors { fill: parent; margins: 12 } texts: texts; solid: true; focus: true }
     }
-    Shots { of: scene; what: texts.open >= 0 ? "messages-" + texts.open + "-" + texts.messages.count : texts.threads.count > 0 ? "messages" : texts.trouble !== "" ? "messages-off" : "" }
+    Shots { of: scene; what: texts.call ? "call-" + texts.call.state : texts.open >= 0 ? "messages-" + texts.open + "-" + texts.messages.count : texts.threads.count > 0 ? "messages" : texts.trouble !== "" ? "messages-off" : "" }
     // --open N: the Nth conversation at once; --size WxH
     Component.onCompleted: {
         const a = Qt.application.arguments, i = a.indexOf("--size")
@@ -29,6 +29,15 @@ Window {
     Connections {
         target: texts
         function onLoadingChanged() {
+            // --to NUMBER: the conversation with that number (from a call)
+            const a = Qt.application.arguments, to = a.indexOf("--to")
+            if (to > 0 && !texts.loading && texts.open < 0 && texts.threads.count > 0) {
+                const want = (a[to + 1] || "").replace(/[^0-9]/g, "").slice(-9)
+                for (let k = 0; k < texts.threads.count; k++) {
+                    const t = texts.threads.get(k)
+                    if (want.length >= 3 && t.address.replace(/[^0-9]/g, "").endsWith(want)) { texts.show({ id: t.id, name: t.name, address: t.address }); return }
+                }
+            }
             const i = Qt.application.arguments.indexOf("--open")
             if (i > 0 && !texts.loading && texts.open < 0 && texts.threads.count > 0) {
                 const t = texts.threads.get(parseInt(Qt.application.arguments[i + 1]) || 0)

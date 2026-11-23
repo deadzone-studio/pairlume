@@ -71,6 +71,7 @@ does not have is dropped and answered with `denied` (`cap`).
 | phone | `ping`; the computer answers `pong` | |
 | phone | `battery` (`percent` 0 to 100, `charging`) | `battery` |
 | phone | `sms_threads`, `sms_messages`, `sms_faces`, `sms_sent`, `sms_error`, `sms_new` | `sms` |
+| phone | `call`, `call_done`, `call_error` | `calls` |
 
 ### Texts
 
@@ -88,6 +89,16 @@ A conversation: `id`, `address`, `name` (empty when it is not in the contacts), 
 `out`, `text`, `date`, `failed`. `sms_new` (`thread`, `message`) comes by itself. Besides the computer's permission the
 phone has its own two switches, for reading and for sending; it sends at most 8 a minute and 150 a day, and only to
 numbers of 7 to 15 digits. When no answer comes in time the text may have gone out: the computer must not say it failed.
+
+### Calls
+
+`call` comes by itself whenever the phone's call changes: `state` (`ringing`, `dialing`, `talking`, `ended`), `number`
+(empty when the network hides it), `name` from the contacts, `missed` on an `ended` call nobody answered, and while it
+rings `png`, the contact's picture as for texts. The computer asks `call_do` (`req`, `what`: `answer`, `end` or `dial`,
+and `number` for `dial`); the phone answers `call_done` or `call_error` (`reason`). `end` says no to a ringing call or ends
+the one there is. The computer dials only numbers of 3 to 15 digits, without `*` or `#`. Besides the computer's
+permission the phone has its own two switches: show calls there, and answer and make them from there. The voice stays on
+the phone.
 
 The phone sends something at least every 15 s; after 45 s of silence the computer closes the connection. A second
 connection of the same phone replaces the first.

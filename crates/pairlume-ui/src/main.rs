@@ -13,6 +13,7 @@ fn main() {
             Some("messages") => "MessagesWindow",
             Some("panel") => "MessagesPanel",
             Some("bubbles") => "Bubbles",
+            Some("calls") => "Calls",
             _ => "Main",
         };
         e.load(&QUrl::from(&QString::from(format!("qrc:/qt/qml/dev/pairlume/qml/{file}.qml").as_str())));

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Phones connect here.
-use crate::{Closed, Daemon, Event, Session};
+use crate::{CallNow, Closed, Daemon, Event, Session};
 use anyhow::{Context, Result, bail};
 use pairlume_core::{
     PROTOCOL_VERSION,
     identity::Fingerprint,
-    message::{Msg, PairMode},
+    message::{CallState, Msg, PairMode},
     pairing::{self, Ends},
     store::clean_name,
     tls,
@@ -156,7 +156,8 @@ fn start_session(d: &Arc<Daemon>, s: Stream, fp: Fingerprint) -> Result<()> {
     out.try_send(Msg::Allowed { caps: dev.allowed }).expect("an empty queue");
     let task = tokio::spawn(run_session(d.clone(), s, fp, number, rx)).abort_handle();
     // the same phone again (it lost the Wi-Fi): the old connection goes
-    if let Some(old) = g.sessions.insert(fp, Session { number, task, out, battery: None, asked: Default::default() }) {
+    if let Some(old) = g.sessions.insert(fp, Session { number, task, out, battery: None, asked: Default::default(), call: None })
+    {
         old.task.abort();
     }
     drop(g);
@@ -224,6 +225,17 @@ fn handle(d: &Daemon, fp: Fingerprint, number: u64, m: Msg) -> Result<()> {
             drop(g);
             if let Msg::SmsNew { thread, message } = m.clean() {
                 d.tell(Event::Sms { id: fp, thread, message });
+            }
+        }
+        m @ Msg::Call { .. } => {
+            let m = m.clean();
+            if let Msg::Call { state, number, name, .. } = &m {
+                s.call =
+                    (*state != CallState::Ended).then(|| CallNow { state: *state, number: number.clone(), name: name.clone() });
+            }
+            drop(g);
+            if let Msg::Call { state, number, name, missed, png } = m {
+                d.tell(Event::Call { id: fp, state, number, name, missed, png });
             }
         }
         Msg::Pong | Msg::Unknown => {}

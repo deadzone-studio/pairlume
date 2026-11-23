@@ -54,6 +54,28 @@ pub enum PairMode {
     Digits,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CallState {
+    /// someone calls this phone
+    Ringing,
+    /// this phone calls someone and it rings there
+    Dialing,
+    Talking,
+    /// over; `missed` when nobody answered a call that came
+    Ended,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CallAction {
+    Answer,
+    /// says no to a ringing call, or ends the one there is
+    End,
+    /// calls `number`
+    Dial,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "t", rename_all = "snake_case")]
 pub enum Msg {
@@ -142,6 +164,35 @@ pub enum Msg {
         thread: Thread,
         message: Text,
     },
+    // ---- calls
+    /// what the phone's call is doing now
+    Call {
+        state: CallState,
+        /// empty when the network hides it
+        #[serde(default)]
+        number: String,
+        /// from the contacts
+        #[serde(default)]
+        name: String,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        missed: bool,
+        /// the contact's picture while it rings (PNG, base64)
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        png: Option<String>,
+    },
+    CallDo {
+        req: u64,
+        what: CallAction,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        number: Option<String>,
+    },
+    CallDone {
+        req: u64,
+    },
+    CallError {
+        req: u64,
+        reason: String,
+    },
     Ping,
     Pong,
     /// something from a newer version: ignored
@@ -222,7 +273,9 @@ impl Msg {
             | Self::SmsMessages { req, .. }
             | Self::SmsFaces { req, .. }
             | Self::SmsSent { req }
-            | Self::SmsError { req, .. } => Some(*req),
+            | Self::SmsError { req, .. }
+            | Self::CallDone { req }
+            | Self::CallError { req, .. } => Some(*req),
             _ => None,
         }
     }
@@ -237,7 +290,14 @@ impl Msg {
                 message.clean();
             }
             Self::SmsFaces { faces, .. } => faces.retain(Face::sound),
-            Self::SmsError { reason, .. } => *reason = crate::store::clean_name(reason),
+            Self::SmsError { reason, .. } | Self::CallError { reason, .. } => *reason = crate::store::clean_name(reason),
+            Self::Call { number, name, png, .. } => {
+                *number = crate::store::clean_name(number).chars().take(40).collect();
+                *name = crate::store::clean_name(name);
+                if png.as_ref().is_some_and(|p| !Face { address: String::new(), png: p.clone() }.sound()) {
+                    *png = None;
+                }
+            }
             _ => {}
         }
         self
@@ -253,6 +313,7 @@ impl Msg {
             | Self::SmsSent { .. }
             | Self::SmsError { .. }
             | Self::SmsNew { .. } => Some(Capability::Sms),
+            Self::Call { .. } | Self::CallDone { .. } | Self::CallError { .. } => Some(Capability::Calls),
             _ => None,
         }
     }

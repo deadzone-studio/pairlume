@@ -13,8 +13,8 @@ Your Android phone and your Hyprland desktop as one: texts, calls, notifications
 |---|---|---|
 | 0 | Project, protocol, tests | done |
 | 1 | Pairing (shake, QR, digits), reconnecting, battery | works, being tried on real phones |
-| 2 | Texts: window, panel, chat bubbles | works with the pretend phone, being tried on real ones |
-| 3 | Calls | planned |
+| 2 | Texts: window, panel, chat bubbles | works |
+| 3 | Calls: who calls, answer, decline, call back (the voice stays on the phone) | works with the pretend phone, being tried on real ones |
 | 4 | Notifications in three styles, colors from the wallpaper, glass, animations | planned |
 | **0.1** | **first release** | |
 | later | Files, clipboard, wireless screen, plugins and themes, remote control, camera | planned |
@@ -49,9 +49,12 @@ target/debug/pairlume-ui               # pairing
 target/debug/pairlume-ui messages      # texts: a window
 target/debug/pairlume-ui panel         # ... from the edge of the screen
 target/debug/pairlume-ui bubbles       # ... as faces at the edge
+target/debug/pairlume-ui calls         # waits, and shows a call when the phone rings
 ```
 
 ![Texts as a window, a panel and bubbles](docs/img/texts.png)
+
+![A call: ringing, answered, missed](docs/img/calls.png)
 
 The Android app (Android 10 or newer) needs JDK 21 and the Android SDK (platform 36):
 

@@ -56,6 +56,26 @@ Item {
         anchors { left: v.wide ? first.right : parent.left; leftMargin: v.wide ? 12 : 0; right: parent.right }
         TalkCard { id: talk; solid: v.solid; anchors.fill: parent; texts: v.texts; back: !v.wide; onLeft_: v.texts.leave(); onCopy: t => v.copied(t) }
     }
+    // a call covers what is on the right (or everything when narrow) while it lasts, and a little after
+    property bool callShut: false
+    Connections { target: v.texts; function onCalled() { v.callShut = false; if (v.texts.call.state === "ended") callAway.restart(); else callAway.stop() } }
+    Timer { id: callAway; interval: v.texts.call && v.texts.call.missed ? 30000 : 4000; onTriggered: v.callShut = true }
+    Turn {
+        on: v.texts.call !== null && !v.callShut
+        anchors { left: v.wide ? first.right : parent.left; leftMargin: v.wide ? 12 : 0; right: parent.right }
+        z: 2
+        CallCard {
+            solid: v.solid
+            anchors.fill: parent
+            texts: v.texts
+            onClose: v.callShut = true
+            onWrite: t => {
+                v.callShut = true
+                for (let i = 0; i < v.texts.threads.count; i++) { const x = v.texts.threads.get(i); if (x.address === t.address) { v.go(x); return } }
+                v.copied(t.address)
+            }
+        }
+    }
     Rectangle {
         anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 96 }
         opacity: quiet.running ? 1 : 0

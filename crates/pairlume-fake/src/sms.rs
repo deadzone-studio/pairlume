@@ -129,6 +129,11 @@ impl Sms {
     }
 }
 
+/// Ola's picture, for her call
+pub fn ola() -> String {
+    base64(include_bytes!("../art/ola.png"))
+}
+
 fn base64(b: &[u8]) -> String {
     const ABC: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut s = String::with_capacity(b.len().div_ceil(3) * 4);
