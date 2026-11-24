@@ -2,3 +2,4 @@
 *.tmp
 .qmlls.ini
 /target-qt
+__pycache__/
