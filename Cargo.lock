@@ -1006,7 +1006,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "pairlume-core"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "rcgen",
@@ -1021,7 +1021,7 @@ dependencies = [
 
 [[package]]
 name = "pairlume-fake"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -1031,7 +1031,7 @@ dependencies = [
 
 [[package]]
 name = "pairlume-ui"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "cxx",
@@ -1046,7 +1046,7 @@ dependencies = [
 
 [[package]]
 name = "pairlumed"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "bluer",

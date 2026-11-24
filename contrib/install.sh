@@ -13,6 +13,7 @@
 #
 # The words are in lang/<code>.json, the same files the windows and the phone app read.
 set -euo pipefail
+shopt -u patsub_replacement 2>/dev/null || true   # bash 5.2: "&" in a replacement would mean the match
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bin="$HOME/.local/bin"
 conf="${XDG_CONFIG_HOME:-$HOME/.config}/pairlume"
