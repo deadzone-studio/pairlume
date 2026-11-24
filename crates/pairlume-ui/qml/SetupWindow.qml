@@ -10,8 +10,9 @@ Window {
     title: Tr.t("Install Pairlume")
     width: 480
     height: 700
-    minimumWidth: 400
-    minimumHeight: 600
+    // a fixed size: tiling desktops (Hyprland, Sway) then float it like a dialog instead of filling half the screen
+    minimumWidth: 480; maximumWidth: 480
+    minimumHeight: 700; maximumHeight: 700
     color: Theme.ground
     visible: false
     readonly property string from: { const a = Qt.application.arguments, i = a.indexOf("--from"); return i > 0 ? a[i + 1] : "" }
