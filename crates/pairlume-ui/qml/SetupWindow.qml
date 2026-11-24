@@ -21,6 +21,7 @@ Window {
     property string step: "lang"
     property string lang: Tr.lang
     property bool calls: true
+    property bool notifs: true
     property bool menu: true
     property bool pairAfter: true
     property bool forget: false
@@ -35,7 +36,7 @@ Window {
     property bool fwBusy: false
     property string fwError: ""
     function letIn() { if (pw.text === "" || fwBusy) return; fwBusy = true; fwError = ""; service.openFirewall(pw.text); pw.text = "" }
-    function install() { removing = false; step = "work"; run(["--yes"].concat(calls ? [] : ["--no-calls"]).concat(menu ? [] : ["--no-menu"])) }
+    function install() { removing = false; step = "work"; run(["--yes"].concat(calls ? [] : ["--no-calls"]).concat(notifs ? [] : ["--no-notifications"]).concat(menu ? [] : ["--no-menu"])) }
     function remove() { removing = true; step = "work"; run(["--remove"].concat(forget ? ["--purge"] : [])) }
 
     Service {
@@ -153,6 +154,7 @@ Window {
                 anchors { left: parent.left; right: parent.right; top: parent.top; topMargin: card.below + 10; leftMargin: 14; rightMargin: 14 }
                 Choice { label: Tr.t("Start with my session"); hint: Tr.t("Pairlume's service: always, it is what the phone talks to"); round: false; on: true; enabled: false; opacity: 0.6 }
                 Choice { label: Tr.t("Show calls when the phone rings"); hint: Tr.t("The call window starts with the desktop"); round: false; on: win.calls; onPicked: win.calls = !win.calls }
+                Choice { label: Tr.t("Show the phone's notifications"); hint: Tr.t("They come in at the top right, with their buttons"); round: false; on: win.notifs; onPicked: win.notifs = !win.notifs }
                 Choice { label: Tr.t("Add to the menu of applications"); hint: Tr.t("Messages, Settings, Pair a phone"); round: false; on: win.menu; onPicked: win.menu = !win.menu }
                 Choice { label: Tr.t("Pair a phone when done"); hint: Tr.t("Opens the pairing window at the end"); round: false; on: win.pairAfter; onPicked: win.pairAfter = !win.pairAfter }
                 Item { width: 1; height: 10 }

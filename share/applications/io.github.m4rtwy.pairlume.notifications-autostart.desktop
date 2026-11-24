@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Pairlume notifications
+Comment=Shows the notifications of the phone
+Exec=pairlume-ui notifications
+Icon=io.github.m4rtwy.pairlume
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

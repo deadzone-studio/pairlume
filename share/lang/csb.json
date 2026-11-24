@@ -97,6 +97,8 @@
     "Pairlume's service: always, it is what the phone talks to": "Ùsłëga Pairlume: wiedno, z nią gôdô telefón",
     "Show calls when the phone rings": "Pòkazëjë rozmòwë, czedë telefón zwòni",
     "The call window starts with the desktop": "Òkno rozmòwów sã zrëszô z pùltã",
+    "Show the phone's notifications": "Pòkazëjë òdkôzë z telefónu",
+    "They come in at the top right, with their buttons": "Pòkazëją sã w prawim górnym rogù, z knąpama",
     "Add to the menu of applications": "Dodôj do menu aplikacji",
     "Messages, Settings, Pair a phone": "Wiadła, Nastôwë, Sparujë telefón",
     "Pair a phone when done": "Sparujë telefón na kùńc",
@@ -256,6 +258,7 @@
     "Copying the programs": "Kòpiujã programë",
     "Starting the service with your session": "Zrëszóm ùsłëgã wraz z twòją sesją",
     "The call window starts with the desktop": "Òkno rozmòwów sã zrëszô z pùltã",
+    "The phone's notifications show at the top right": "Òdkôzë z telefónu pòkażą sã w prawim górnym rogù",
     "Adding Pairlume to the menu of applications": "Dodôwóm Pairlume do menu aplikacji",
     "Add ~/.local/bin to your PATH to use the pairlume command.": "Dodôj ~/.local/bin do PATH, żebë brëkòwac pòlecenia pairlume.",
     "Pairlume %1 is installed and running.": "Pairlume %1 je zainstalowóné ë dzejô.",
@@ -273,6 +276,7 @@
     "Remove it and forget the paired phones": "Wëmażë ë zabôczë sparowóné telefónë",
     "Cancel": "Òdwòłôj",
     "Show calls on this computer when the phone rings (start the call window with the desktop)?": "Pòkazëwac rozmòwë na tim kòmpùtrze, czedë telefón zwòni (òkno rozmòwów sã zrëszô z pùltã)?",
+    "Show the phone's notifications on this computer?": "Pòkazëwac òdkôzë z telefónu na tim kòmpùtrze?",
     "Add Pairlume to the menu of applications?": "Dodac Pairlume do menu aplikacji?",
     "Put the app on the phone now?": "Wgrac terô aplikacjã na telefón?"
   }

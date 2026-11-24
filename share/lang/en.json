@@ -96,6 +96,8 @@
     "Pairlume's service: always, it is what the phone talks to": "Pairlume's service: always, it is what the phone talks to",
     "Show calls when the phone rings": "Show calls when the phone rings",
     "The call window starts with the desktop": "The call window starts with the desktop",
+    "Show the phone's notifications": "Show the phone's notifications",
+    "They come in at the top right, with their buttons": "They come in at the top right, with their buttons",
     "Add to the menu of applications": "Add to the menu of applications",
     "Messages, Settings, Pair a phone": "Messages, Settings, Pair a phone",
     "Pair a phone when done": "Pair a phone when done",
@@ -255,6 +257,7 @@
     "Copying the programs": "Copying the programs",
     "Starting the service with your session": "Starting the service with your session",
     "The call window starts with the desktop": "The call window starts with the desktop",
+    "The phone's notifications show at the top right": "The phone's notifications show at the top right",
     "Adding Pairlume to the menu of applications": "Adding Pairlume to the menu of applications",
     "Add ~/.local/bin to your PATH to use the pairlume command.": "Add ~/.local/bin to your PATH to use the pairlume command.",
     "Pairlume %1 is installed and running.": "Pairlume %1 is installed and running.",
@@ -272,6 +275,7 @@
     "Remove it and forget the paired phones": "Remove it and forget the paired phones",
     "Cancel": "Cancel",
     "Show calls on this computer when the phone rings (start the call window with the desktop)?": "Show calls on this computer when the phone rings (start the call window with the desktop)?",
+    "Show the phone's notifications on this computer?": "Show the phone's notifications on this computer?",
     "Add Pairlume to the menu of applications?": "Add Pairlume to the menu of applications?",
     "Put the app on the phone now?": "Put the app on the phone now?"
   }

@@ -9,6 +9,7 @@
 #
 #   --lang <code>   the language (en pl szl csb de es fr it pt uk cs)
 #   --no-calls      do not start the call window with the desktop
+#   --no-notifications  do not show the phone's notifications on the computer
 #   --no-menu       no entries in the menu of applications
 #
 # The words are in lang/<code>.json, the same files the windows and the phone app read.
@@ -27,7 +28,7 @@ version="$(cat "$here/VERSION" 2>/dev/null || echo 0.0.0)"
 apk="$here/Pairlume.apk"
 apk_url="https://github.com/deadzone-studio/pairlume/releases/download/v$version/Pairlume-$version.apk"
 
-what="" code="" text=0 yes=0 purge=0 calls=1 menu=1
+what="" code="" text=0 yes=0 purge=0 calls=1 notifs=1 menu=1
 args=("$@")
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -37,10 +38,11 @@ while [ $# -gt 0 ]; do
     --text) text=1 ;;
     --yes) yes=1 ;;
     --no-calls) calls=0 ;;
+    --no-notifications) notifs=0 ;;
     --no-menu) menu=0 ;;
     --lang) code="${2:-}"; shift ;;
     --lang=*) code="${1#--lang=}" ;;
-    -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"; exit 0 ;;
   esac
   shift
 done
@@ -119,10 +121,10 @@ installed_version() { "$bin/pairlumed" --version 2>/dev/null | awk '{print $2}';
 # ---------- taking it away ----------
 remove() {
   step "$(t "Stopping Pairlume")"
-  systemctl --user disable --now pairlume-calls.service pairlumed.service >/dev/null 2>&1 || true
+  systemctl --user disable --now pairlume-calls.service pairlume-notifications.service pairlumed.service >/dev/null 2>&1 || true
   step "$(t "Removing the programs and the menu entries")"
-  rm -f "$bin/pairlumed" "$bin/pairlume" "$bin/pairlume-ui" "$units/pairlumed.service" "$units/pairlume-calls.service" \
-    "$autostart/$id.calls-autostart.desktop" "$apps/$id".*.desktop "$icons/$id.svg"
+  rm -f "$bin/pairlumed" "$bin/pairlume" "$bin/pairlume-ui" "$units/pairlumed.service" "$units/pairlume-calls.service" "$units/pairlume-notifications.service" \
+    "$autostart/$id.calls-autostart.desktop" "$autostart/$id.notifications-autostart.desktop" "$apps/$id".*.desktop "$icons/$id.svg"
   systemctl --user daemon-reload >/dev/null 2>&1 || true
   command -v update-desktop-database >/dev/null && update-desktop-database "$apps" >/dev/null 2>&1 || true
   if [ $purge -eq 1 ]; then
@@ -193,6 +195,17 @@ install_it() {
     systemctl --user disable --now pairlume-calls.service >/dev/null 2>&1 || true
     rm -f "$units/pairlume-calls.service" "$autostart/$id.calls-autostart.desktop"
   fi
+  if [ $notifs -eq 1 ]; then
+    step "$(t "The phone's notifications show at the top right")"
+    install -m 644 "$here/pairlume-notifications.service" "$units/pairlume-notifications.service"
+    mkdir -p "$autostart"; install -m 644 "$here/share/applications/$id.notifications-autostart.desktop" "$autostart/"
+    systemctl --user daemon-reload
+    systemctl --user enable pairlume-notifications.service >/dev/null 2>&1 || true
+    systemctl --user restart pairlume-notifications.service >/dev/null 2>&1 || true
+  else
+    systemctl --user disable --now pairlume-notifications.service >/dev/null 2>&1 || true
+    rm -f "$units/pairlume-notifications.service" "$autostart/$id.notifications-autostart.desktop"
+  fi
   if [ $menu -eq 1 ]; then
     step "$(t "Adding Pairlume to the menu of applications")"
     mkdir -p "$apps" "$icons"
@@ -247,6 +260,7 @@ if [ -z "$what" ] && [ $yes -eq 0 ]; then
   fi
   if [ "$what" = install ]; then
     ask "$(t "Show calls on this computer when the phone rings (start the call window with the desktop)?")" || calls=0
+    ask "$(t "Show the phone's notifications on this computer?")" || notifs=0
     ask "$(t "Add Pairlume to the menu of applications?")" || menu=0
   fi
 fi

@@ -1,0 +1,12 @@
+[Unit]
+Description=Pairlume: the notifications of the phone, at the top right
+PartOf=graphical-session.target
+After=graphical-session.target pairlumed.service
+
+[Service]
+ExecStart=%h/.local/bin/pairlume-ui notifications
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

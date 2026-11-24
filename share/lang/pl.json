@@ -96,6 +96,8 @@
     "Pairlume's service: always, it is what the phone talks to": "Usługa Pairlume: zawsze, to z nią rozmawia telefon",
     "Show calls when the phone rings": "Pokazuj połączenia, gdy telefon dzwoni",
     "The call window starts with the desktop": "Okno połączeń startuje razem z pulpitem",
+    "Show the phone's notifications": "Pokazuj powiadomienia z telefonu",
+    "They come in at the top right, with their buttons": "Pojawiają się w prawym górnym rogu, z przyciskami",
     "Add to the menu of applications": "Dodaj do menu aplikacji",
     "Messages, Settings, Pair a phone": "Wiadomości, Ustawienia, Sparuj telefon",
     "Pair a phone when done": "Sparuj telefon na koniec",
@@ -255,6 +257,7 @@
     "Copying the programs": "Kopiuję programy",
     "Starting the service with your session": "Uruchamiam usługę razem z Twoją sesją",
     "The call window starts with the desktop": "Okno połączeń startuje razem z pulpitem",
+    "The phone's notifications show at the top right": "Powiadomienia z telefonu pokażą się w prawym górnym rogu",
     "Adding Pairlume to the menu of applications": "Dodaję Pairlume do menu aplikacji",
     "Add ~/.local/bin to your PATH to use the pairlume command.": "Dodaj ~/.local/bin do PATH, żeby używać polecenia pairlume.",
     "Pairlume %1 is installed and running.": "Pairlume %1 jest zainstalowane i działa.",
@@ -272,6 +275,7 @@
     "Remove it and forget the paired phones": "Usuń i zapomnij sparowane telefony",
     "Cancel": "Anuluj",
     "Show calls on this computer when the phone rings (start the call window with the desktop)?": "Pokazywać połączenia na tym komputerze, gdy telefon dzwoni (okno połączeń startuje z pulpitem)?",
+    "Show the phone's notifications on this computer?": "Pokazywać powiadomienia z telefonu na tym komputerze?",
     "Add Pairlume to the menu of applications?": "Dodać Pairlume do menu aplikacji?",
     "Put the app on the phone now?": "Wgrać teraz apkę na telefon?"
   }

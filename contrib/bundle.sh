@@ -10,7 +10,7 @@ d="$out/$name"
 rm -rf "$d"; mkdir -p "$d/lang" "$d/share"
 for f in pairlumed pairlume pairlume-ui; do install -m 755 "$repo/target/release/$f" "$d/"; strip "$d/$f" 2>/dev/null || true; done
 install -m 755 "$repo/contrib/install.sh" "$d/"
-install -m 644 "$repo/contrib/systemd/pairlumed.service" "$repo/contrib/systemd/pairlume-calls.service" "$repo/LICENSE" "$d/"
+install -m 644 "$repo/contrib/systemd/pairlumed.service" "$repo/contrib/systemd/pairlume-calls.service" "$repo/contrib/systemd/pairlume-notifications.service" "$repo/LICENSE" "$d/"
 cp "$repo"/share/lang/*.json "$d/lang/"
 cp -r "$repo/share/applications" "$repo/share/icons" "$d/share/"
 printf '%s\n' "$version" > "$d/VERSION"

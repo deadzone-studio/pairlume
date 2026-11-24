@@ -97,6 +97,8 @@
     "Pairlume's service: always, it is what the phone talks to": "El servicio de Pairlume: siempre, es con el que habla el teléfono",
     "Show calls when the phone rings": "Mostrar las llamadas cuando suena el teléfono",
     "The call window starts with the desktop": "La ventana de llamadas se inicia con el escritorio",
+    "Show the phone's notifications": "Mostrar las notificaciones del teléfono",
+    "They come in at the top right, with their buttons": "Aparecen arriba a la derecha, con sus botones",
     "Add to the menu of applications": "Añadir al menú de aplicaciones",
     "Messages, Settings, Pair a phone": "Mensajes, Ajustes, Emparejar un teléfono",
     "Pair a phone when done": "Emparejar un teléfono al terminar",
@@ -256,6 +258,7 @@
     "Copying the programs": "Copiando los programas",
     "Starting the service with your session": "Iniciando el servicio con tu sesión",
     "The call window starts with the desktop": "La ventana de llamadas se inicia con el escritorio",
+    "The phone's notifications show at the top right": "Las notificaciones del teléfono aparecen arriba a la derecha",
     "Adding Pairlume to the menu of applications": "Añadiendo Pairlume al menú de aplicaciones",
     "Add ~/.local/bin to your PATH to use the pairlume command.": "Añade ~/.local/bin a tu PATH para usar la orden pairlume.",
     "Pairlume %1 is installed and running.": "Pairlume %1 está instalado y en marcha.",
@@ -273,6 +276,7 @@
     "Remove it and forget the paired phones": "Quitarlo y olvidar los teléfonos emparejados",
     "Cancel": "Cancelar",
     "Show calls on this computer when the phone rings (start the call window with the desktop)?": "¿Mostrar las llamadas en este ordenador cuando suena el teléfono (la ventana de llamadas se inicia con el escritorio)?",
+    "Show the phone's notifications on this computer?": "¿Mostrar las notificaciones del teléfono en este ordenador?",
     "Add Pairlume to the menu of applications?": "¿Añadir Pairlume al menú de aplicaciones?",
     "Put the app on the phone now?": "¿Poner la app en el teléfono ahora?"
   }

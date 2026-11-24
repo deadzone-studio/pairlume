@@ -97,6 +97,8 @@
     "Pairlume's service: always, it is what the phone talks to": "Служба Pairlume: завжди, саме з нею говорить телефон",
     "Show calls when the phone rings": "Показувати дзвінки, коли телефон дзвонить",
     "The call window starts with the desktop": "Вікно дзвінків запускається разом зі стільницею",
+    "Show the phone's notifications": "Показувати сповіщення телефона",
+    "They come in at the top right, with their buttons": "Вони з'являються вгорі праворуч, з кнопками",
     "Add to the menu of applications": "Додати в меню застосунків",
     "Messages, Settings, Pair a phone": "Повідомлення, Налаштування, З'єднати телефон",
     "Pair a phone when done": "З'єднати телефон наприкінці",
@@ -256,6 +258,7 @@
     "Copying the programs": "Копіюю програми",
     "Starting the service with your session": "Запускаю службу разом із твоїм сеансом",
     "The call window starts with the desktop": "Вікно дзвінків запускається разом зі стільницею",
+    "The phone's notifications show at the top right": "Сповіщення телефона з'являтимуться вгорі праворуч",
     "Adding Pairlume to the menu of applications": "Додаю Pairlume в меню застосунків",
     "Add ~/.local/bin to your PATH to use the pairlume command.": "Додай ~/.local/bin до PATH, щоб користуватися командою pairlume.",
     "Pairlume %1 is installed and running.": "Pairlume %1 встановлено, і він працює.",
@@ -273,6 +276,7 @@
     "Remove it and forget the paired phones": "Видалити й забути з'єднані телефони",
     "Cancel": "Скасувати",
     "Show calls on this computer when the phone rings (start the call window with the desktop)?": "Показувати дзвінки на цьому комп'ютері, коли телефон дзвонить (вікно дзвінків запускається зі стільницею)?",
+    "Show the phone's notifications on this computer?": "Показувати сповіщення телефона на цьому комп'ютері?",
     "Add Pairlume to the menu of applications?": "Додати Pairlume в меню застосунків?",
     "Put the app on the phone now?": "Поставити застосунок на телефон зараз?"
   }

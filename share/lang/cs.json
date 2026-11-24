@@ -97,6 +97,8 @@
     "Pairlume's service: always, it is what the phone talks to": "Služba Pairlume: vždy, s ní telefon mluví",
     "Show calls when the phone rings": "Ukazovat hovory, když telefon zvoní",
     "The call window starts with the desktop": "Okno hovorů se spouští s plochou",
+    "Show the phone's notifications": "Ukazovat oznámení z telefonu",
+    "They come in at the top right, with their buttons": "Objeví se vpravo nahoře, se svými tlačítky",
     "Add to the menu of applications": "Přidat do nabídky aplikací",
     "Messages, Settings, Pair a phone": "Zprávy, Nastavení, Spárovat telefon",
     "Pair a phone when done": "Na konci spárovat telefon",
@@ -256,6 +258,7 @@
     "Copying the programs": "Kopíruji programy",
     "Starting the service with your session": "Spouštím službu s tvým sezením",
     "The call window starts with the desktop": "Okno hovorů se spouští s plochou",
+    "The phone's notifications show at the top right": "Oznámení z telefonu se ukážou vpravo nahoře",
     "Adding Pairlume to the menu of applications": "Přidávám Pairlume do nabídky aplikací",
     "Add ~/.local/bin to your PATH to use the pairlume command.": "Přidej ~/.local/bin do PATH, abys mohl používat příkaz pairlume.",
     "Pairlume %1 is installed and running.": "Pairlume %1 je nainstalované a běží.",
@@ -273,6 +276,7 @@
     "Remove it and forget the paired phones": "Odebrat a zapomenout spárované telefony",
     "Cancel": "Zrušit",
     "Show calls on this computer when the phone rings (start the call window with the desktop)?": "Ukazovat hovory na tomto počítači, když telefon zvoní (okno hovorů se spouští s plochou)?",
+    "Show the phone's notifications on this computer?": "Ukazovat oznámení z telefonu na tomto počítači?",
     "Add Pairlume to the menu of applications?": "Přidat Pairlume do nabídky aplikací?",
     "Put the app on the phone now?": "Dát teď aplikaci do telefonu?"
   }
