@@ -42,6 +42,7 @@ Window {
         interval: 500; repeat: true; running: shown.count > 0
         onTriggered: { const now = Date.now(); for (let i = shown.count - 1; i >= 0; i--) { const c = list.itemAtIndex(i); if (c && c.busy) shown.setProperty(i, "until", now + 4000); else if (shown.get(i).until < now) win.drop(shown.get(i).key) } }
     }
+    readonly property Texts phone: texts
     Item {
         id: scene
         anchors.fill: parent
@@ -54,7 +55,8 @@ Window {
             add: Transition { NumberAnimation { property: "x"; from: 420; duration: 520; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spring } }
             remove: Transition { NumberAnimation { property: "opacity"; to: 0; duration: Theme.quick } }
             displaced: Transition { NumberAnimation { property: "y"; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.smooth } }
-            delegate: NotifCard { required property int index; texts: texts; onClosed: win.drop(model.key) }
+            // win.phone, not texts: inside the card that name is the card's own property
+            delegate: NotifCard { required property int index; texts: win.phone; onClosed: win.drop(model.key) }
         }
     }
     Shots { of: scene; what: shown.count > 0 ? "notifs-" + shown.count : "" }
