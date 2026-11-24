@@ -83,6 +83,13 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "runInstaller"]
         fn run_installer(self: Pin<&mut Service>, from: QString, args: QString);
+        /// lets phones through the firewall (ufw or firewalld) with sudo and this password; the end comes as
+        /// `firewalled`
+        #[qinvokable]
+        #[cxx_name = "openFirewall"]
+        fn open_firewall(self: Pin<&mut Service>, password: QString);
+        #[qsignal]
+        fn firewalled(self: Pin<&mut Service>, ok: bool, why: QString);
         #[qsignal]
         fn said(self: Pin<&mut Service>, line: QString);
         #[qsignal]
@@ -349,20 +356,23 @@ impl qobject::Service {
             None => vec![],
         };
         let url = format!("https://github.com/deadzone-studio/pairlume/releases/download/v{version}/Pairlume-{version}.apk");
-        // a firewall that may keep phones out: ufw or firewalld running
-        let active = |unit: &str| {
-            std::process::Command::new("systemctl").args(["is-active", "--quiet", unit]).status().is_ok_and(|s| s.success())
-        };
-        let firewall = if active("ufw") {
-            "sudo ufw allow 47321/tcp && sudo ufw allow 5353/udp"
-        } else if active("firewalld") {
-            "sudo firewall-cmd --permanent --add-port=47321/tcp --add-service=mdns && sudo firewall-cmd --reload"
-        } else {
-            ""
-        };
+        let firewall = firewall_commands().unwrap_or("");
         let v = serde_json::json!({ "version": version, "installed": installed, "apk_url": url, "phones": phones,
             "has_installer": from.join("install.sh").is_file(), "firewall": firewall });
         QString::from(v.to_string().as_str())
+    }
+
+    fn open_firewall(self: Pin<&mut Self>, password: QString) {
+        let password = String::from(&password);
+        let qt = self.qt_thread();
+        std::thread::spawn(move || {
+            let (ok, why) = match firewall_commands() {
+                None => (true, String::new()),
+                Some(cmds) => as_root(cmds, &password),
+            };
+            let why = QString::from(why.as_str());
+            let _ = qt.queue(move |o| o.firewalled(ok, why));
+        });
     }
 
     fn run_installer(self: Pin<&mut Self>, from: QString, args: QString) {
@@ -434,5 +444,46 @@ impl qobject::Service {
         let bits: Vec<char> = c.to_colors().iter().map(|x| if *x == qrcode::Color::Dark { '1' } else { '0' }).collect();
         let rows: Vec<String> = bits.chunks(c.width()).map(|r| r.iter().collect()).collect();
         QString::from(rows.join("\n").as_str())
+    }
+}
+
+/// a firewall that may keep phones out (ufw or firewalld running): the commands that let them in, the same as install.sh
+fn firewall_commands() -> Option<&'static str> {
+    let active = |unit: &str| {
+        std::process::Command::new("systemctl").args(["is-active", "--quiet", unit]).status().is_ok_and(|s| s.success())
+    };
+    if active("ufw") {
+        Some("ufw allow 47321/tcp && ufw allow 5353/udp")
+    } else if active("firewalld") {
+        Some("firewall-cmd --permanent --add-port=47321/tcp --add-service=mdns && firewall-cmd --reload")
+    } else {
+        None
+    }
+}
+
+/// runs commands through sudo with the password on its input; it is never kept or written anywhere
+fn as_root(cmds: &str, password: &str) -> (bool, String) {
+    use std::io::Write;
+    let child = std::process::Command::new("sudo")
+        .args(["-S", "-k", "-p", "", "sh", "-c", cmds])
+        .env("LC_ALL", "C")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .spawn();
+    let mut child = match child {
+        Ok(c) => c,
+        Err(e) => return (false, e.to_string()),
+    };
+    if let Some(mut i) = child.stdin.take() {
+        let _ = writeln!(i, "{password}");
+    }
+    match child.wait_with_output() {
+        Ok(o) if o.status.success() => (true, String::new()),
+        Ok(o) => {
+            let err = String::from_utf8_lossy(&o.stderr);
+            (false, err.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim().to_string())
+        }
+        Err(e) => (false, e.to_string()),
     }
 }

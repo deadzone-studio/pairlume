@@ -31,6 +31,10 @@ Window {
     readonly property var langs: { try { return JSON.parse(service.languages()) } catch (e) { return [] } }
     function look() { try { info = JSON.parse(service.setupInfo(from)) } catch (e) { info = {} } }
     function run(args) { lines = []; failed = false; service.runInstaller(from, JSON.stringify(args.concat(["--lang", lang]))) }
+    property bool fwOpen: false
+    property bool fwBusy: false
+    property string fwError: ""
+    function letIn() { if (pw.text === "" || fwBusy) return; fwBusy = true; fwError = ""; service.openFirewall(pw.text); pw.text = "" }
     function install() { removing = false; step = "work"; run(["--yes"].concat(calls ? [] : ["--no-calls"]).concat(menu ? [] : ["--no-menu"])) }
     function remove() { removing = true; step = "work"; run(["--remove"].concat(forget ? ["--purge"] : [])) }
 
@@ -38,6 +42,7 @@ Window {
         id: service
         onBlurredChanged: Theme.blurred = blurred
         onColorsChanged: { try { Theme.from = JSON.parse(colors) } catch (e) { } }
+        onFirewalled: (ok, why) => { win.fwBusy = false; win.fwOpen = ok; win.fwError = ok ? "" : (why || "?") }
         onSaid: line => { const l = line.trim(); if (l !== "") win.lines = win.lines.concat([l]) }
         onEnded: code => {
             win.failed = code !== 0
@@ -151,25 +156,48 @@ Window {
                 Choice { label: Tr.t("Add to the menu of applications"); hint: Tr.t("Messages, Settings, Pair a phone"); round: false; on: win.menu; onPicked: win.menu = !win.menu }
                 Choice { label: Tr.t("Pair a phone when done"); hint: Tr.t("Opens the pairing window at the end"); round: false; on: win.pairAfter; onPicked: win.pairAfter = !win.pairAfter }
                 Item { width: 1; height: 10 }
-                // a firewall keeps phones out unless it lets them in; that needs a password, so it is a command to copy
-                Text {
-                    visible: (win.info.firewall || "") !== ""
-                    width: parent.width
-                    wrapMode: Text.Wrap
-                    textFormat: Text.PlainText
-                    text: Tr.t("A firewall is on: let phones in with this command, in a terminal:")
-                    color: Theme.dim
-                    font.pixelSize: 13
-                }
-                Item { width: 1; height: 6 }
+                // a firewall keeps phones out unless it lets them in; that takes the password (sudo), asked here
                 Rectangle {
                     visible: (win.info.firewall || "") !== ""
                     width: parent.width
-                    height: fw.height + 20
-                    radius: 14
-                    color: Theme.fade(Theme.text, 0.07)
-                    Text { id: fw; x: 12; y: 10; width: parent.width - 90; wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText; text: win.info.firewall || ""; color: Theme.text; font { family: "monospace"; pixelSize: 12 } }
-                    Pill { anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter } text: Tr.t("Copy"); onClicked: win.copy(win.info.firewall) }
+                    height: fwc.height + 24
+                    radius: 22
+                    color: Theme.fade(Theme.text, 0.06)
+                    Column {
+                        id: fwc
+                        x: 16; y: 12; width: parent.width - 32; spacing: 8
+                        Text {
+                            width: parent.width; wrapMode: Text.Wrap; textFormat: Text.PlainText; color: win.fwOpen ? Theme.text : Theme.dim; font.pixelSize: 13
+                            text: win.fwOpen ? "✓  " + Tr.t("Phones can get through the firewall")
+                                             : Tr.t("A firewall is on. To let phones in, type your password:")
+                        }
+                        Row {
+                            visible: !win.fwOpen
+                            width: parent.width; spacing: 8
+                            Rectangle {
+                                width: parent.width - letIn.width - 8; height: 38; radius: 19
+                                color: Theme.fade(Theme.text, 0.08)
+                                border { width: pw.activeFocus ? 2 : 0; color: Theme.accent }
+                                TextInput {
+                                    id: pw
+                                    anchors { fill: parent; leftMargin: 14; rightMargin: 14 }
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    echoMode: TextInput.Password
+                                    color: Theme.text; selectionColor: Theme.accent; font.pixelSize: 14
+                                    enabled: !win.fwBusy
+                                    Accessible.name: Tr.t("Password")
+                                    Keys.onReturnPressed: win.letIn()
+                                    Text { visible: pw.text === "" && !pw.activeFocus; anchors.verticalCenter: parent.verticalCenter; text: Tr.t("Password"); color: Theme.dim; font.pixelSize: 14 }
+                                }
+                            }
+                            Pill { id: letIn; filled: true; text: win.fwBusy ? "…" : Tr.t("Let phones in"); enabled: !win.fwBusy && pw.text !== ""; onClicked: win.letIn() }
+                        }
+                        Text {
+                            visible: win.fwError !== "" && !win.fwOpen
+                            width: parent.width; wrapMode: Text.Wrap; textFormat: Text.PlainText; color: Theme.dim; font.pixelSize: 12
+                            text: Tr.t("That did not work: %1").arg(win.fwError)
+                        }
+                    }
                 }
             }
 

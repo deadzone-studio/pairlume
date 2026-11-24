@@ -213,8 +213,21 @@ after() {
   echo "  1. $(t "Install the Pairlume app on your Android phone (Android 10 or newer).")"
   echo "  2. $(t "Pair: run %1 and shake the phone with the app open." "pairlume-ui")"
   echo "  3. $(t "Allow what the phone may do: %1 (and calls)." "pairlume allow \"<phone>\" sms")"
+}
+
+# ---------- a firewall keeps phones out: let them in (sudo asks for the password) ----------
+fw_cmds() {
+  if systemctl is-active --quiet ufw 2>/dev/null; then echo "ufw allow 47321/tcp && ufw allow 5353/udp"
+  elif systemctl is-active --quiet firewalld 2>/dev/null; then echo "firewall-cmd --permanent --add-port=47321/tcp --add-service=mdns && firewall-cmd --reload"
+  fi
+}
+firewall() {
+  local c; c="$(fw_cmds)"; [ -n "$c" ] || return 0
   echo
-  t "Phones reach this computer on TCP 47321 and mDNS (UDP 5353). With a firewall: %1" "sudo ufw allow 47321/tcp"; echo
+  if [ $yes -eq 0 ] && [ -t 0 ] && ask "$(t "A firewall is on and keeps phones out. Let them in now? (it asks for your password)")"; then
+    if sudo sh -c "$c" >/dev/null; then say "$(t "Phones can get through the firewall")"; return 0; fi
+  fi
+  t "To let phones in later, run: %1" "sudo sh -c '$c'"; echo
 }
 
 # ---------- what to do ----------
@@ -242,6 +255,7 @@ case "${what:-install}" in
   install)
     install_it
     after
+    firewall
     if [ $yes -eq 0 ] && ask "$(t "Put the app on the phone now?")"; then echo; phone; fi
     ;;
 esac
