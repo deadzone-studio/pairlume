@@ -36,6 +36,11 @@ object Voice {
         }, BluetoothProfile.HEADSET)
     }
 
+    /** BluetoothDevice.BOND_NONE, BOND_BONDING or BOND_BONDED; NONE when it cannot be read */
+    @SuppressLint("MissingPermission")
+    fun bondState(c: Context, address: String) =
+        if (permitted(c)) device(c, address)?.bondState ?: BluetoothDevice.BOND_NONE else BluetoothDevice.BOND_NONE
+
     @SuppressLint("MissingPermission")
     fun bonded(c: Context, address: String) = permitted(c) && device(c, address)?.bondState == BluetoothDevice.BOND_BONDED
 

@@ -2,6 +2,7 @@
 package dev.pairlume.app
 
 import android.Manifest
+import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -347,10 +348,24 @@ private fun VoiceRow(computer: String) {
     var paired by remember { mutableStateOf(false) }
     var bonded by remember { mutableStateOf(false) }
     var asked by remember { mutableStateOf(false) }
-    fun look() { paired = address != null && Voice.connected(context, address); bonded = address != null && Voice.bonded(context, address) }
+    // a pairing that ends without a bond (refused, timed out, the computer out of reach) has to say so
+    var failed by remember { mutableStateOf(false) }
+    var sawBonding by remember { mutableStateOf(false) }
+    var since by remember { mutableStateOf(0L) }
+    fun start(ok: Boolean) { asked = ok; failed = false; sawBonding = false; since = System.currentTimeMillis() }
+    fun look() {
+        paired = address != null && Voice.connected(context, address); bonded = address != null && Voice.bonded(context, address)
+        if (!asked || address == null || bonded) return
+        val state = Voice.bondState(context, address)
+        if (state == BluetoothDevice.BOND_BONDING) sawBonding = true
+        // it was trying and stopped, or it never started trying
+        if ((sawBonding && state == BluetoothDevice.BOND_NONE) || (!sawBonding && System.currentTimeMillis() - since > 20_000)) {
+            asked = false; failed = true
+        }
+    }
     LaunchedEffect(address, asked) { while (true) { look(); delay(1500) } }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok && address != null) asked = Voice.pair(context, address)
+        if (ok && address != null) start(Voice.pair(context, address))
     }
     Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
@@ -361,6 +376,7 @@ private fun VoiceRow(computer: String) {
                     paired -> t("Connected over Bluetooth. Calls you answer there are heard there.")
                     !Voice.on(context) -> t("Turn Bluetooth on first")
                     asked && !bonded -> t("Say yes on both screens: the same code is on %1", computer)
+                    failed -> t("It did not pair. Bluetooth has to be on at %1, close by; then try again", computer)
                     asked -> t("Paired. Waiting for %1 to connect", computer)
                     bonded -> t("Paired before, but not connected. Connect pairs it anew")
                     else -> t("Talk through the computer's speakers and microphone")
@@ -370,9 +386,9 @@ private fun VoiceRow(computer: String) {
             )
         }
         if (address != null && !paired && Voice.on(context)) Button({
-            if (Voice.permitted(context)) asked = Voice.pair(context, address)
+            if (Voice.permitted(context)) start(Voice.pair(context, address))
             else if (Build.VERSION.SDK_INT >= 31) ask.launch(Manifest.permission.BLUETOOTH_CONNECT)
-        }) { Text(t("Connect")) }
+        }) { Text(if (failed) t("Try again") else t("Connect")) }
     }
 }
 
