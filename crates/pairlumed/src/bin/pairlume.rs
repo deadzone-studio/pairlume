@@ -40,6 +40,9 @@ enum Cmd {
     Call { device: String, what: String, number: Option<String> },
     /// print what happens, one JSON per line
     Watch,
+    /// draw a QR code of any text in the terminal (the installer shows the phone app's link with it)
+    #[command(hide = true)]
+    Qr { text: String },
 }
 
 struct Link(BufReader<UnixStream>);
@@ -122,6 +125,7 @@ fn pair(no_qr: bool) -> Result<()> {
 fn main() -> Result<()> {
     match Args::parse().cmd {
         Cmd::Pair { no_qr } => return pair(no_qr),
+        Cmd::Qr { text } => println!("{}", qr(&text)?),
         Cmd::Status => {
             let devs = Link::new()?.ask(&Request::Status)?.devices.unwrap_or_default();
             if devs.is_empty() {

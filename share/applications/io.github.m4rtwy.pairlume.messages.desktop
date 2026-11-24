@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Pairlume Messages
+Comment=Texts from your phone
+Exec=pairlume-ui messages
+Icon=io.github.m4rtwy.pairlume
+Terminal=false
+Categories=Network;
+StartupNotify=false

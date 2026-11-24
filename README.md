@@ -39,9 +39,28 @@ from people who speak them are very welcome.
 
 ## Install
 
-From the [releases](https://github.com/deadzone-studio/pairlume/releases): unpack `pairlume-…-linux-x86_64.zip` and run
-`./install.sh` (it puts the programs in `~/.local/bin` and starts the service with your session; `./install.sh --remove`
-takes it away). Install `Pairlume-….apk` on the phone. Releases are early previews until 0.1.
+From the [releases](https://github.com/deadzone-studio/pairlume/releases), either:
+
+- unpack `pairlume-…-linux-x86_64.zip` (or `.tar.gz`) and run `./install.sh`, or
+- download just `install.sh` and run it with `bash install.sh`: it fetches its release and checks it first.
+
+On a desktop the installer is a window: pick the language, what to install and, at the end, put the app on the phone
+(over a USB cable when one is connected with USB debugging on, or by scanning a code). Run it again to update, to put the
+app on a phone, or to take Pairlume away, keeping or forgetting the paired phones.
+
+![The installer: what to install, the phone, and what it offers when Pairlume is already there](docs/img/installer.png)
+
+Everything lives in your home: the programs in `~/.local/bin`, the service as a systemd user unit that starts with your
+session. Without a desktop, or with `--text`, it asks the same in the terminal. Without questions:
+
+```
+./install.sh --yes [--lang pl] [--no-calls] [--no-menu]   install or update
+./install.sh --phone                                     put the app on the phone
+./install.sh --remove [--purge]                          take it away (--purge: forget the paired phones too)
+```
+
+The phone app is also on its own as `Pairlume-….apk` (Android 10 or newer). Releases are early previews until 0.1.
+`contrib/bundle.sh` makes the release files from a build.
 
 The phone app is signed with this key (SHA-256 of the certificate):
 `50:11:B3:93:23:01:22:35:66:25:F8:4F:6B:B6:89:08:6B:BB:A9:7D:DD:7A:4B:02:9E:3C:C0:C4:D2:C3:40:A3`

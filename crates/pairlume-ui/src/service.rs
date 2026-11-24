@@ -73,6 +73,20 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "chooseLanguage"]
         fn choose_language(self: &Service, code: QString);
+        /// for the installer: what is in the release folder and on this computer (JSON: version, installed, apk_url,
+        /// phones on a cable)
+        #[qinvokable]
+        #[cxx_name = "setupInfo"]
+        fn setup_info(self: &Service, from: QString) -> QString;
+        /// runs install.sh of the release folder with these arguments (JSON list); its lines come as `said`, the end as
+        /// `ended` with its exit code
+        #[qinvokable]
+        #[cxx_name = "runInstaller"]
+        fn run_installer(self: Pin<&mut Service>, from: QString, args: QString);
+        #[qsignal]
+        fn said(self: Pin<&mut Service>, line: QString);
+        #[qsignal]
+        fn ended(self: Pin<&mut Service>, code: i32);
         /// starts another window of Pairlume (JSON list of arguments)
         #[qinvokable]
         fn open(self: &Service, args: QString);
@@ -296,6 +310,108 @@ impl qobject::Service {
         if std::fs::write(&tmp, v.to_string()).is_ok() {
             let _ = std::fs::rename(tmp, path);
         }
+    }
+
+    fn setup_info(&self, from: QString) -> QString {
+        let from = std::path::PathBuf::from(String::from(&from));
+        let version = std::fs::read_to_string(from.join("VERSION")).map(|v| v.trim().to_string()).unwrap_or_default();
+        let home = std::env::var_os("HOME").map(std::path::PathBuf::from).unwrap_or_default();
+        let have = home.join(".local/bin/pairlumed");
+        let installed = std::process::Command::new(&have)
+            .arg("--version")
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .and_then(|s| s.split_whitespace().nth(1).map(String::from));
+        // phones on a cable, when adb is there and the release has the app
+        let adb = ["adb".into(), home.join("Android/Sdk/platform-tools/adb")].into_iter().find(|a: &std::path::PathBuf| {
+            std::process::Command::new(a).arg("version").output().is_ok_and(|o| o.status.success())
+        });
+        let phones: Vec<String> = match adb.filter(|_| from.join("Pairlume.apk").is_file()) {
+            Some(a) => std::process::Command::new(a)
+                .args(["devices", "-l"])
+                .output()
+                .map(|o| {
+                    String::from_utf8_lossy(&o.stdout)
+                        .lines()
+                        .skip(1)
+                        .filter(|l| l.split_whitespace().nth(1) == Some("device"))
+                        .map(|l| {
+                            l.split(" model:")
+                                .nth(1)
+                                .and_then(|m| m.split_whitespace().next())
+                                .unwrap_or("phone")
+                                .replace('_', " ")
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+            None => vec![],
+        };
+        let url = format!("https://github.com/deadzone-studio/pairlume/releases/download/v{version}/Pairlume-{version}.apk");
+        // a firewall that may keep phones out: ufw or firewalld running
+        let active = |unit: &str| {
+            std::process::Command::new("systemctl").args(["is-active", "--quiet", unit]).status().is_ok_and(|s| s.success())
+        };
+        let firewall = if active("ufw") {
+            "sudo ufw allow 47321/tcp && sudo ufw allow 5353/udp"
+        } else if active("firewalld") {
+            "sudo firewall-cmd --permanent --add-port=47321/tcp --add-service=mdns && sudo firewall-cmd --reload"
+        } else {
+            ""
+        };
+        let v = serde_json::json!({ "version": version, "installed": installed, "apk_url": url, "phones": phones,
+            "has_installer": from.join("install.sh").is_file(), "firewall": firewall });
+        QString::from(v.to_string().as_str())
+    }
+
+    fn run_installer(self: Pin<&mut Self>, from: QString, args: QString) {
+        let from = std::path::PathBuf::from(String::from(&from));
+        let args: Vec<String> = serde_json::from_str(&String::from(&args)).unwrap_or_default();
+        let qt = self.qt_thread();
+        std::thread::spawn(move || {
+            let child = std::process::Command::new("bash")
+                .arg(from.join("install.sh"))
+                .args(&args)
+                .env("NO_COLOR", "1")
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped())
+                .spawn();
+            let mut child = match child {
+                Ok(c) => c,
+                Err(e) => {
+                    let line = QString::from(format!("{e}").as_str());
+                    let _ = qt.queue(move |o| o.said(line));
+                    let _ = qt.queue(|o| o.ended(1));
+                    return;
+                }
+            };
+            // what goes wrong is said too
+            if let Some(err) = child.stderr.take() {
+                let qt = qt.clone();
+                std::thread::spawn(move || {
+                    for l in BufReader::new(err).lines().map_while(Result::ok) {
+                        let line = QString::from(l.as_str());
+                        if qt.queue(move |o| o.said(line)).is_err() {
+                            return;
+                        }
+                    }
+                });
+            }
+            if let Some(out) = child.stdout.take() {
+                for l in BufReader::new(out).lines().map_while(Result::ok) {
+                    // no colors in a window
+                    let clean: String = l.replace("\u{1b}[1m", "").replace("\u{1b}[0m", "");
+                    let line = QString::from(clean.as_str());
+                    if qt.queue(move |o| o.said(line)).is_err() {
+                        return;
+                    }
+                }
+            }
+            let code = child.wait().ok().and_then(|s| s.code()).unwrap_or(1);
+            let _ = qt.queue(move |o| o.ended(code));
+        });
     }
 
     fn open(&self, args: QString) {

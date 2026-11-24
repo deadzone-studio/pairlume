@@ -15,6 +15,7 @@ fn main() {
             Some("bubbles") => "Bubbles",
             Some("calls") => "Calls",
             Some("settings") => "SettingsWindow",
+            Some("setup") => "SetupWindow",
             Some("notifications") => "NotifWindow",
             _ => "Main",
         };

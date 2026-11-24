@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use cxx_qt_build::{CxxQtBuilder, QmlFile, QmlModule};
 
-const PAGES: [&str; 28] = [
+const PAGES: [&str; 29] = [
     "Main",
     "PairingCard",
     "Phone",
@@ -28,6 +28,7 @@ const PAGES: [&str; 28] = [
     "Mover",
     "BtCard",
     "SettingsWindow",
+    "SetupWindow",
     "NotifCard",
     "NotifWindow",
 ];

@@ -1,0 +1,12 @@
+[Unit]
+Description=Pairlume: the call window, shown when the phone rings
+PartOf=graphical-session.target
+After=graphical-session.target pairlumed.service
+
+[Service]
+ExecStart=%h/.local/bin/pairlume-ui calls
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

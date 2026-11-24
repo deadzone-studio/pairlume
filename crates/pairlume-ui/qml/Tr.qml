@@ -16,6 +16,7 @@ QtObject {
     }
     readonly property var words: { try { return JSON.parse(s.words(lang)) } catch (e) { return {} } }
     function t(x) { return words[x] || x }
-    // another window may choose another language: all of them follow
-    property Timer look: Timer { interval: 1500; repeat: true; running: true; onTriggered: { const c = tr.s.chosenLanguage(); if (c !== tr.chosen) tr.chosen = c } }
+    // another window may choose another language: all of them follow (not the installer, which chooses its own)
+    property bool pinned: false
+    property Timer look: Timer { interval: 1500; repeat: true; running: !tr.pinned; onTriggered: { const c = tr.s.chosenLanguage(); if (c !== tr.chosen) tr.chosen = c } }
 }

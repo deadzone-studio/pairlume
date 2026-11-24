@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Pairlume calls
+Comment=Shows a call when the phone rings
+Exec=pairlume-ui calls
+Icon=io.github.m4rtwy.pairlume
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

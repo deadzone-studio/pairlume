@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Pairlume Settings
+Comment=Language and more
+Exec=pairlume-ui settings
+Icon=io.github.m4rtwy.pairlume
+Terminal=false
+Categories=Network;
+StartupNotify=false
