@@ -53,6 +53,8 @@ Window {
         // --step <name>: for pictures of a step
         const a = Qt.application.arguments, i = a.indexOf("--step")
         if (i > 0) step = a[i + 1]
+        // --chosen: the language was picked in the terminal already
+        else if (a.indexOf("--chosen") > 0) step = info.installed ? "menu" : "options"
         visible = true
         service.start()
     }

@@ -232,6 +232,8 @@
   },
   "install": {
     "Y/n": "Т/н",
+    "In a window": "У вікні",
+    "Here in the terminal": "Тут, у терміналі",
     "Run it as yourself, not as root.": "Запускай від свого користувача, не від root.",
     "Stopping Pairlume": "Зупиняю Pairlume",
     "Removing the programs and the menu entries": "Видаляю програми й пункти меню",

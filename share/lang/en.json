@@ -231,6 +231,8 @@
   },
   "install": {
     "Y/n": "Y/n",
+    "In a window": "In a window",
+    "Here in the terminal": "Here in the terminal",
     "Run it as yourself, not as root.": "Run it as yourself, not as root.",
     "Stopping Pairlume": "Stopping Pairlume",
     "Removing the programs and the menu entries": "Removing the programs and the menu entries",

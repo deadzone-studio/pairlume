@@ -70,8 +70,11 @@ windows_ok() {
   ! ldd "$here/pairlume-ui" 2>/dev/null | grep -q 'not found' &&
     { [ -e /usr/lib/qt6/qml/org/kde/layershell ] || [ -e /usr/lib/x86_64-linux-gnu/qt6/qml/org/kde/layershell ]; }
 }
+gui=0
 if [ -z "$what" ] && [ $text -eq 0 ] && [ $yes -eq 0 ] && { [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; } && windows_ok; then
-  exec "$here/pairlume-ui" setup --from "$here" ${code:+--lang "$code"}
+  gui=1
+  # started by a click, not from a terminal: straight to the window
+  [ -t 0 ] || exec "$here/pairlume-ui" setup --from "$here" ${code:+--lang "$code"}
 fi
 
 if [ -z "$code" ] && [ $yes -eq 0 ] && [ -t 0 ] && [ -d "$here/lang" ]; then
@@ -98,6 +101,15 @@ say() { printf '\033[1m%s\033[0m\n' "$*"; }
 # a step: the window shows these lines as they come
 step() { printf '• %s\n' "$*"; }
 ask() { local a; [ $yes -eq 1 ] && return 0; printf '%s [%s] ' "$1" "$(t "Y/n")"; read -r a || a=""; case "$a" in [nN]*) return 1 ;; *) return 0 ;; esac; }
+
+# from a terminal on a desktop: the window or right here
+if [ $gui -eq 1 ]; then
+  echo
+  printf '  1  %s\n  2  %s\n\n  > ' "$(t "In a window")" "$(t "Here in the terminal")"
+  read -r how || how=""
+  case "$how" in 2) ;; *) exec "$here/pairlume-ui" setup --from "$here" --lang "$code" --chosen ;; esac
+  echo
+fi
 
 [ "$(id -u)" -ne 0 ] || { t "Run it as yourself, not as root."; echo; exit 1; }
 installed() { [ -x "$bin/pairlumed" ]; }

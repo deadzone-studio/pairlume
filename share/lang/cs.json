@@ -232,6 +232,8 @@
   },
   "install": {
     "Y/n": "A/n",
+    "In a window": "V okně",
+    "Here in the terminal": "Tady v terminálu",
     "Run it as yourself, not as root.": "Spusť to jako sebe, ne jako root.",
     "Stopping Pairlume": "Zastavuji Pairlume",
     "Removing the programs and the menu entries": "Odebírám programy a položky nabídky",

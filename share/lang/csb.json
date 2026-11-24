@@ -232,6 +232,8 @@
   },
   "install": {
     "Y/n": "T/n",
+    "In a window": "W òknie",
+    "Here in the terminal": "Tuwò, w terminalu",
     "Run it as yourself, not as root.": "Zrëszë to jakno swój brëkòwnik, nié jakno root.",
     "Stopping Pairlume": "Zatrzëmùjã Pairlume",
     "Removing the programs and the menu entries": "Wëmazujã programë ë skrótë w menu",

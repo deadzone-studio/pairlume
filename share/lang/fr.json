@@ -232,6 +232,8 @@
   },
   "install": {
     "Y/n": "O/n",
+    "In a window": "Dans une fenêtre",
+    "Here in the terminal": "Ici, dans le terminal",
     "Run it as yourself, not as root.": "Lance-le en tant que toi, pas en root.",
     "Stopping Pairlume": "Arrêt de Pairlume",
     "Removing the programs and the menu entries": "Suppression des programmes et des entrées du menu",
