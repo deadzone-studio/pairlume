@@ -33,7 +33,7 @@ jobs:
           PAIRLUME_SOCKET: /tmp/pairlume.sock
         # each runs until it is stopped (124); a window that does not load ends it with 1
         run: |
-          for w in "" messages panel bubbles calls settings; do
+          for w in "" messages panel bubbles calls settings notifications; do
             XDG_RUNTIME_DIR=$(mktemp -d) timeout 8 target/debug/pairlume-ui $w || [ $? -eq 124 ] || { echo "window '$w' did not load"; exit 1; }
           done
   android:

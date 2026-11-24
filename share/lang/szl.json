@@ -78,7 +78,11 @@
     "just now": "przed chwilōm",
     "No phone is paired yet": "Żŏdyn telefōn niy ma sparowany",
     "%1 is not connected": "%1 niy ma połōnczōny",
-    "Texts are off on this computer": "SMS-y sōm wyłōnczōne na tym kōmputrze"
+    "Texts are off on this computer": "SMS-y sōm wyłōnczōne na tym kōmputrze",
+    "Dismiss": "Ôdciep",
+    "Answer %1": "Ôdpisz: %1",
+    "Notifications": "Powiadōmiynia",
+    "Your answer": "Twoja ôdpowiydź"
   },
   "phone": {
     "Answering and making calls is off in Pairlume on the phone": "Ôdbiyranie i dzwōnianie je wyłōnczōne w Pairlume na telefōnie",
@@ -166,7 +170,22 @@
     "Digits": "Cyfry",
     "not confirmed here": "niy potwiyrdzōne sam",
     "not confirmed on the computer": "niy potwiyrdzōne na kōmputrze",
-    "the codes do not match": "kody sie niy zgŏdzajōm"
+    "the codes do not match": "kody sie niy zgŏdzajōm",
+    "Notification access is off on the phone": "Dostymp do powiadōmiyń je wyłōnczōny na telefōnie",
+    "Notifications": "Powiadōmiynia",
+    "Notifications of your apps, with their buttons and answers. Nothing is saved.": "Powiadōmiynia twojich aplikacyji, z jejich knefliczkami i ôdpowiydziami. Nic niy ma spamiyntowane.",
+    "Leave out apps": "Pōmiń aplikacyje",
+    "Apps show up here once they have shown a notification.": "Aplikacyje pokazujōm sie sam, kej pokażōm jakie powiadōmiynie.",
+    "Notifications are off in Pairlume on the phone": "Powiadōmiynia sōm wyłōnczōne w Pairlume na telefōnie",
+    "That notification is gone": "Tego powiadōmiynio już niy ma",
+    "Which button?": "Kery knefliczek?",
+    "It has no such button": "Niy mŏ takigo knefliczka",
+    "That button takes no answer": "Tyn knefliczek niy bierze ôdpowiydzi",
+    "An answer has 1 to 2000 characters": "Ôdpowiydź mŏ ôd 1 do 2000 znakōw",
+    "The app no longer takes that": "Aplikacyjŏ już tego niy bierze",
+    "Pair with this computer?": "Sparować z tym kōmputrym?",
+    "A pairing code from outside the app: the computer at %1. Pair only if you opened it yourself.": "Kod parowanio spoza aplikacyje: kōmputer pod adresym %1. Paruj ino, jak żeś go sōm ôtworzył.",
+    "Not now": "Niy terŏz"
   },
   "install": {
     "Pairlume is gone. Your pairings stay in ~/.config/pairlume until you delete that folder.": "Pairlume wyciepniyte. Twoje parowania ôstŏwajōm w ~/.config/pairlume, aż niy wyciepniesz tego folderu.",

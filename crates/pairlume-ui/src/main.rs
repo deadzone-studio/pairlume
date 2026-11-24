@@ -15,6 +15,7 @@ fn main() {
             Some("bubbles") => "Bubbles",
             Some("calls") => "Calls",
             Some("settings") => "SettingsWindow",
+            Some("notifications") => "NotifWindow",
             _ => "Main",
         };
         e.load(&QUrl::from(&QString::from(format!("qrc:/qt/qml/dev/pairlume/qml/{file}.qml").as_str())));

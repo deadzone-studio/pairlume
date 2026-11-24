@@ -78,7 +78,11 @@
     "just now": "právě teď",
     "No phone is paired yet": "Zatím není spárovaný žádný telefon",
     "%1 is not connected": "%1 není připojený",
-    "Texts are off on this computer": "Zprávy jsou na tomto počítači vypnuté"
+    "Texts are off on this computer": "Zprávy jsou na tomto počítači vypnuté",
+    "Dismiss": "Zavřít",
+    "Answer %1": "Odpovědět: %1",
+    "Notifications": "Oznámení",
+    "Your answer": "Tvoje odpověď"
   },
   "phone": {
     "Answering and making calls is off in Pairlume on the phone": "Přijímání a volání je v Pairlume na telefonu vypnuté",
@@ -166,7 +170,22 @@
     "Digits": "Číslice",
     "not confirmed here": "tady nepotvrzeno",
     "not confirmed on the computer": "na počítači nepotvrzeno",
-    "the codes do not match": "kódy se neshodují"
+    "the codes do not match": "kódy se neshodují",
+    "Notification access is off on the phone": "Přístup k oznámením je na telefonu vypnutý",
+    "Notifications": "Oznámení",
+    "Notifications of your apps, with their buttons and answers. Nothing is saved.": "Oznámení tvých aplikací, s jejich tlačítky a odpověďmi. Nic se neukládá.",
+    "Leave out apps": "Vynechat aplikace",
+    "Apps show up here once they have shown a notification.": "Aplikace se tu objeví, jakmile ukážou nějaké oznámení.",
+    "Notifications are off in Pairlume on the phone": "Oznámení jsou v Pairlume na telefonu vypnutá",
+    "That notification is gone": "To oznámení už tu není",
+    "Which button?": "Které tlačítko?",
+    "It has no such button": "Takové tlačítko nemá",
+    "That button takes no answer": "To tlačítko nepřijímá odpověď",
+    "An answer has 1 to 2000 characters": "Odpověď má 1 až 2000 znaků",
+    "The app no longer takes that": "Aplikace to už nepřijímá",
+    "Pair with this computer?": "Spárovat s tímto počítačem?",
+    "A pairing code from outside the app: the computer at %1. Pair only if you opened it yourself.": "Párovací kód zvenku aplikace: počítač na adrese %1. Páruj jen, pokud jsi ho otevřel sám.",
+    "Not now": "Teď ne"
   },
   "install": {
     "Pairlume is gone. Your pairings stay in ~/.config/pairlume until you delete that folder.": "Pairlume je pryč. Tvoje párování zůstávají v ~/.config/pairlume, dokud tu složku nesmažeš.",

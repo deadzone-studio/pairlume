@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import kotlinx.coroutines.delay
+import dev.pairlume.core.QrCode
 
 private val Night = darkColorScheme(
     primary = Color(0xFF7AA2FF), onPrimary = Color(0xFF0B1020), tertiary = Color(0xFFC08BFF), background = Color(0xFF0B1020),
@@ -64,17 +65,43 @@ private val Night = darkColorScheme(
 
 class MainActivity : ComponentActivity() {
     private lateinit var pairer: Pairer
+    /** a pairing link that came from outside (a camera app, a browser): paired only after a yes here */
+    private var link by mutableStateOf<String?>(null)
 
     override fun onCreate(state: Bundle?) {
         Lang.init(this)
         super.onCreate(state)
         enableEdgeToEdge()
         pairer = Pairer(this)
+        take(intent)
         setContent {
             MaterialTheme(if (Build.VERSION.SDK_INT >= 31) dynamicDarkColorScheme(this) else Night) {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { App(pairer) }
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    App(pairer)
+                    link?.let { l ->
+                        val where = runCatching { QrCode.parse(l).address.let { "${it.address.hostAddress}:${it.port}" } }.getOrNull()
+                        if (where == null) link = null
+                        else AlertDialog(
+                            onDismissRequest = { link = null },
+                            title = { Text(t("Pair with this computer?")) },
+                            text = { Text(t("A pairing code from outside the app: the computer at %1. Pair only if you opened it yourself.", where)) },
+                            confirmButton = { TextButton({ link = null; pairer.qr(l) }) { Text(t("Pair")) } },
+                            dismissButton = { TextButton({ link = null }) { Text(t("Not now")) } },
+                        )
+                    }
+                }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        take(intent)
+    }
+
+    private fun take(i: android.content.Intent?) {
+        val d = i?.data ?: return
+        if (d.scheme == "pairlume" && d.host == "pair") link = d.toString()
     }
 
     override fun onDestroy() {
@@ -146,6 +173,8 @@ private fun Home(c: Computer, forget: () -> Unit) {
         Spacer(Modifier.height(12.dp))
         CallSwitches(c.name)
         Spacer(Modifier.height(12.dp))
+        NotifSwitches(c.name)
+        Spacer(Modifier.height(12.dp))
         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
             Column(Modifier.padding(20.dp)) {
                 Text(t("Keeps dropping out?"), fontWeight = FontWeight.SemiBold)
@@ -165,6 +194,61 @@ private fun Home(c: Computer, forget: () -> Unit) {
         confirmButton = { TextButton({ sure = false; forget() }) { Text(t("Forget")) } },
         dismissButton = { TextButton({ sure = false }) { Text(t("Keep")) } },
     )
+}
+
+/** notifications on the computer: Android's own access first, then the apps that stay on the phone */
+@Composable
+private fun NotifSwitches(computer: String) {
+    val context = LocalContext.current
+    val choices = remember { NotifChoices(context) }
+    var on by remember { mutableStateOf(choices.on) }
+    var wanted by remember { mutableStateOf(false) }
+    var picking by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(Unit) {
+        // back from Android's settings: the switch goes on if access was given
+        if (wanted && NotifChoices.granted(context)) { choices.on = true; wanted = false }
+        on = choices.on
+        onPauseOrDispose { }
+    }
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
+        Column(Modifier.padding(20.dp)) {
+            Text(t("Notifications"), fontWeight = FontWeight.SemiBold)
+            Choice(t("Show on %1", computer), t("Notifications of your apps, with their buttons and answers. Nothing is saved."), on) { v ->
+                when {
+                    !v -> { choices.on = false; on = false }
+                    NotifChoices.granted(context) -> { choices.on = true; on = true }
+                    else -> { wanted = true; NotifChoices.openAccess(context) }
+                }
+            }
+            if (on) TextButton({ picking = true }) { Text(t("Leave out apps")) }
+        }
+    }
+    if (picking) {
+        val pm = context.packageManager
+        val apps = remember { choices.seen.sortedBy { p -> try { pm.getApplicationLabel(pm.getApplicationInfo(p, 0)).toString().lowercase() } catch (_: Exception) { p } } }
+        var skipped by remember { mutableStateOf(choices.skipped) }
+        AlertDialog(
+            onDismissRequest = { picking = false },
+            title = { Text(t("Leave out apps")) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    if (apps.isEmpty()) Text(t("Apps show up here once they have shown a notification."), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    apps.forEach { p ->
+                        val name = try { pm.getApplicationLabel(pm.getApplicationInfo(p, 0)).toString() } catch (_: Exception) { p }
+                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).selectable(p in skipped, role = Role.Checkbox) {
+                            skipped = if (p in skipped) skipped - p else skipped + p
+                            choices.skipped = skipped
+                        }.padding(vertical = 8.dp, horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(p in skipped, null)
+                            Spacer(Modifier.width(12.dp))
+                            Text(name)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton({ picking = false }) { Text(t("Close")) } },
+        )
+    }
 }
 
 /** the language of the app: the phone's own, or one of the files in share/lang */

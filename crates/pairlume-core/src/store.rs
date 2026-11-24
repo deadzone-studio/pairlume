@@ -90,12 +90,17 @@ impl Store {
 
 /// a name from the other side: one short line, nothing that could play with a terminal or a window
 pub fn clean_name(s: &str) -> String {
+    let n = clean_line(s, 48);
+    if n.is_empty() { "Unnamed device".into() } else { n }
+}
+
+/// one line from the other side, at most `max` characters; empty stays empty (a number the network hides, a title)
+pub fn clean_line(s: &str, max: usize) -> String {
     let hidden = |c: char| {
         c.is_control() || matches!(c, '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{206f}' | '\u{feff}')
     };
-    let n: String = s.chars().filter(|c| !hidden(*c)).take(48).collect();
-    let n = n.trim();
-    if n.is_empty() { "Unnamed device".into() } else { n.into() }
+    let n: String = s.chars().filter(|c| !hidden(*c)).take(max).collect();
+    n.trim().into()
 }
 
 #[cfg(test)]

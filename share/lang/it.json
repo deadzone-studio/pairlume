@@ -78,7 +78,11 @@
     "just now": "proprio ora",
     "No phone is paired yet": "Nessun telefono ancora associato",
     "%1 is not connected": "%1 non è connesso",
-    "Texts are off on this computer": "I messaggi sono disattivati su questo computer"
+    "Texts are off on this computer": "I messaggi sono disattivati su questo computer",
+    "Dismiss": "Ignora",
+    "Answer %1": "Rispondi a %1",
+    "Notifications": "Notifiche",
+    "Your answer": "La tua risposta"
   },
   "phone": {
     "Answering and making calls is off in Pairlume on the phone": "Rispondere e chiamare è disattivato in Pairlume sul telefono",
@@ -166,7 +170,22 @@
     "Digits": "Cifre",
     "not confirmed here": "non confermato qui",
     "not confirmed on the computer": "non confermato sul computer",
-    "the codes do not match": "i codici non corrispondono"
+    "the codes do not match": "i codici non corrispondono",
+    "Notification access is off on the phone": "L'accesso alle notifiche è disattivato sul telefono",
+    "Notifications": "Notifiche",
+    "Notifications of your apps, with their buttons and answers. Nothing is saved.": "Le notifiche delle tue app, con i loro pulsanti e le risposte. Non si salva niente.",
+    "Leave out apps": "Escludi app",
+    "Apps show up here once they have shown a notification.": "Le app compaiono qui dopo aver mostrato una notifica.",
+    "Notifications are off in Pairlume on the phone": "Le notifiche sono disattivate in Pairlume sul telefono",
+    "That notification is gone": "Quella notifica non c'è più",
+    "Which button?": "Quale pulsante?",
+    "It has no such button": "Non ha quel pulsante",
+    "That button takes no answer": "Quel pulsante non accetta risposte",
+    "An answer has 1 to 2000 characters": "Una risposta ha da 1 a 2000 caratteri",
+    "The app no longer takes that": "L'app non lo accetta più",
+    "Pair with this computer?": "Associare questo computer?",
+    "A pairing code from outside the app: the computer at %1. Pair only if you opened it yourself.": "Un codice di associazione da fuori dell'app: il computer a %1. Associa solo se l'hai aperto tu.",
+    "Not now": "Non ora"
   },
   "install": {
     "Pairlume is gone. Your pairings stay in ~/.config/pairlume until you delete that folder.": "Pairlume è stato rimosso. Le tue associazioni restano in ~/.config/pairlume finché non cancelli quella cartella.",

@@ -77,7 +77,11 @@
     "just now": "just now",
     "No phone is paired yet": "No phone is paired yet",
     "%1 is not connected": "%1 is not connected",
-    "Texts are off on this computer": "Texts are off on this computer"
+    "Texts are off on this computer": "Texts are off on this computer",
+    "Dismiss": "Dismiss",
+    "Answer %1": "Answer %1",
+    "Notifications": "Notifications",
+    "Your answer": "Your answer"
   },
   "phone": {
     "Answering and making calls is off in Pairlume on the phone": "Answering and making calls is off in Pairlume on the phone",
@@ -165,7 +169,22 @@
     "Digits": "Digits",
     "not confirmed here": "not confirmed here",
     "not confirmed on the computer": "not confirmed on the computer",
-    "the codes do not match": "the codes do not match"
+    "the codes do not match": "the codes do not match",
+    "Notification access is off on the phone": "Notification access is off on the phone",
+    "Notifications": "Notifications",
+    "Notifications of your apps, with their buttons and answers. Nothing is saved.": "Notifications of your apps, with their buttons and answers. Nothing is saved.",
+    "Leave out apps": "Leave out apps",
+    "Apps show up here once they have shown a notification.": "Apps show up here once they have shown a notification.",
+    "Notifications are off in Pairlume on the phone": "Notifications are off in Pairlume on the phone",
+    "That notification is gone": "That notification is gone",
+    "Which button?": "Which button?",
+    "It has no such button": "It has no such button",
+    "That button takes no answer": "That button takes no answer",
+    "An answer has 1 to 2000 characters": "An answer has 1 to 2000 characters",
+    "The app no longer takes that": "The app no longer takes that",
+    "Pair with this computer?": "Pair with this computer?",
+    "A pairing code from outside the app: the computer at %1. Pair only if you opened it yourself.": "A pairing code from outside the app: the computer at %1. Pair only if you opened it yourself.",
+    "Not now": "Not now"
   },
   "install": {
     "Pairlume is gone. Your pairings stay in ~/.config/pairlume until you delete that folder.": "Pairlume is gone. Your pairings stay in ~/.config/pairlume until you delete that folder.",

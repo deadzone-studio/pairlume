@@ -78,7 +78,11 @@
     "just now": "щойно",
     "No phone is paired yet": "Ще жоден телефон не з'єднано",
     "%1 is not connected": "%1 не з'єднано",
-    "Texts are off on this computer": "Повідомлення вимкнені на цьому комп'ютері"
+    "Texts are off on this computer": "Повідомлення вимкнені на цьому комп'ютері",
+    "Dismiss": "Відхилити",
+    "Answer %1": "Відповісти: %1",
+    "Notifications": "Сповіщення",
+    "Your answer": "Твоя відповідь"
   },
   "phone": {
     "Answering and making calls is off in Pairlume on the phone": "Відповідати й дзвонити вимкнено в Pairlume на телефоні",
@@ -166,7 +170,22 @@
     "Digits": "Цифри",
     "not confirmed here": "не підтверджено тут",
     "not confirmed on the computer": "не підтверджено на комп'ютері",
-    "the codes do not match": "коди не збігаються"
+    "the codes do not match": "коди не збігаються",
+    "Notification access is off on the phone": "Доступ до сповіщень вимкнено на телефоні",
+    "Notifications": "Сповіщення",
+    "Notifications of your apps, with their buttons and answers. Nothing is saved.": "Сповіщення твоїх застосунків, з їхніми кнопками й відповідями. Нічого не зберігається.",
+    "Leave out apps": "Пропускати застосунки",
+    "Apps show up here once they have shown a notification.": "Застосунки з'являються тут, щойно покажуть сповіщення.",
+    "Notifications are off in Pairlume on the phone": "Сповіщення вимкнені в Pairlume на телефоні",
+    "That notification is gone": "Цього сповіщення вже немає",
+    "Which button?": "Яка кнопка?",
+    "It has no such button": "Немає такої кнопки",
+    "That button takes no answer": "Ця кнопка не приймає відповіді",
+    "An answer has 1 to 2000 characters": "Відповідь має від 1 до 2000 символів",
+    "The app no longer takes that": "Застосунок це вже не приймає",
+    "Pair with this computer?": "З'єднати з цим комп'ютером?",
+    "A pairing code from outside the app: the computer at %1. Pair only if you opened it yourself.": "Код з'єднання ззовні застосунку: комп'ютер за адресою %1. З'єднуй, лише якщо відкрив його сам.",
+    "Not now": "Не зараз"
   },
   "install": {
     "Pairlume is gone. Your pairings stay in ~/.config/pairlume until you delete that folder.": "Pairlume видалено. Твої з'єднання лишаються в ~/.config/pairlume, доки ти не видалиш цю теку.",

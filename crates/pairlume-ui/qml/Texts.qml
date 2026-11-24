@@ -13,6 +13,29 @@ Item {
     property bool blocked: false
     // calls: may this phone use them, and the call there is now ({ state, number, name, missed, png, since }), or null
     property bool mayCall: false
+    // notifications of the phone: the ones there are now, newest first, and the icons of their apps
+    property bool mayNotify: false
+    readonly property ListModel notifs: ListModel {}
+    property var appIcons: ({})
+    property string notifTrouble
+    signal notified(var n)
+    function notifDo(key, what, action, text) {
+        notifTrouble = ""
+        const r = { cmd: "notif", device: device, key: key, what: what }
+        if (action !== undefined && action !== null) r.action = action
+        if (text) r.text = text
+        ask("notifdo", r)
+    }
+    function notifIcon(app) { return appIcons[app] || "" }
+    function keepNotif(n) {
+        if (n.icon) { const f = Object.assign({}, appIcons); f[n.app] = "data:image/png;base64," + n.icon; appIcons = f }
+        else if (!(n.app in appIcons) && device !== "") ask("icon " + n.app, { cmd: "notif_icon", device: device, app: n.app })
+        const row = { key: n.key, app: n.app, appName: n.app_name || n.app, title: n.title || "", text: n.text || "", when: n.when || Date.now(),
+                      actions: JSON.stringify(n.actions || []) }
+        for (let i = 0; i < notifs.count; i++) if (notifs.get(i).key === n.key) { notifs.remove(i); break }
+        notifs.insert(0, row)
+        while (notifs.count > 60) notifs.remove(notifs.count - 1)
+    }
     property var call: null
     property string callTrouble
     // Bluetooth pairing for the voice of calls: { name, code } while the computer waits for a yes, then { ok }
@@ -121,6 +144,8 @@ Item {
             if (["online", "offline", "paired", "unpaired", "allowed", "battery"].includes(e.event)) tx.look()
             if (e.event === "bt_code") tx.bt = { name: e.name, code: e.code }
             if (e.event === "bt_done") tx.bt = { ok: e.ok, name: tx.bt ? tx.bt.name : "" }
+            if (e.event === "notif" && e.id === tx.device) { tx.keepNotif(e); tx.notified(e) }
+            if (e.event === "notif_gone" && e.id === tx.device) { for (let i = 0; i < tx.notifs.count; i++) if (tx.notifs.get(i).key === e.key) { tx.notifs.remove(i); break } }
             if (e.event === "call" && e.id === tx.device) {
                 const was = tx.call
                 const c = { state: e.state, number: e.number, name: e.name, missed: e.missed, png: e.png ? "data:image/png;base64," + e.png : (was && was.number === e.number ? was.png : ""),
@@ -149,6 +174,10 @@ Item {
                 tx.online = !!(s && s.online && may)
                 tx.blocked = !!(s && s.online && !may)
                 tx.mayCall = !!(s && s.online && s.allowed.includes("calls"))
+                const mayNotify = !!(s && s.online && s.allowed.includes("notifications"))
+                if (mayNotify && !tx.mayNotify && s) tx.ask("notifs", { cmd: "notifications", device: s.id })
+                if (!mayNotify) tx.notifs.clear()
+                tx.mayNotify = mayNotify
                 if (!tx.mayCall) tx.call = null
                 // a window opened in the middle of a call
                 else if (s.call && !tx.call) { tx.call = { state: s.call.state, number: s.call.number, name: s.call.name, missed: false, png: "", since: Date.now() }; tx.wantFace({ name: s.call.name, address: s.call.number }); tx.called() }
@@ -157,6 +186,15 @@ Item {
                 tx.trouble = !s ? Tr.t("No phone is paired yet") : !s.online ? Tr.t("%1 is not connected").arg(s.name)
                            : !may ? Tr.t("Texts are off on this computer") : ""
                 if (tx.device !== was) { if (tx.online) tx.refresh(); if (was !== "" && tx.device !== "") { tx.threads.clear(); tx.leave() } }
+                return
+            }
+            if (kind === "notifdo") { if (r.error || r.why) tx.notifTrouble = r.error || r.why; return }
+            if (kind === "notifs") { tx.notifs.clear(); (r.notifications || []).slice().reverse().forEach(n => tx.keepNotif(n)); return }
+            if (kind === "icon") {
+                const app = tag.slice(5)
+                const f = Object.assign({}, tx.appIcons)
+                f[app] = r.icon ? "data:image/png;base64," + r.icon : ""
+                tx.appIcons = f
                 return
             }
             if (kind === "call") { if (r.error || r.why) tx.callTrouble = r.error || r.why; return }

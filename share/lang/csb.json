@@ -78,7 +78,11 @@
     "just now": "chwilã temù",
     "No phone is paired yet": "Żóden telefón nie je sparowóny",
     "%1 is not connected": "%1 nie je sparłączony",
-    "Texts are off on this computer": "SMS-ë są wëłączoné na tim kòmpùtrze"
+    "Texts are off on this computer": "SMS-ë są wëłączoné na tim kòmpùtrze",
+    "Dismiss": "Òdrzuc",
+    "Answer %1": "Òdpiszë: %1",
+    "Notifications": "Wiadoma",
+    "Your answer": "Twòja òdpòwiédz"
   },
   "phone": {
     "Answering and making calls is off in Pairlume on the phone": "Òdbiéranié ë zwònienié je wëłączoné w Pairlume na telefónie",
@@ -166,7 +170,22 @@
     "Digits": "Cyfrë",
     "not confirmed here": "nie pòcwierdzoné tuwò",
     "not confirmed on the computer": "nie pòcwierdzoné na kòmpùtrze",
-    "the codes do not match": "kòdë sã nie zgôdzają"
+    "the codes do not match": "kòdë sã nie zgôdzają",
+    "Notification access is off on the phone": "Przëstãp do wiadomów je wëłączony na telefónie",
+    "Notifications": "Wiadoma",
+    "Notifications of your apps, with their buttons and answers. Nothing is saved.": "Wiadoma twòjich aplikacjów, z jich knëpkama ë òdpòwiédzama. Nick nie je zapisywóné.",
+    "Leave out apps": "Pòminië aplikacje",
+    "Apps show up here once they have shown a notification.": "Aplikacje pòjawiają sã tuwò, czedë pòkôżą jaczé wiadomé.",
+    "Notifications are off in Pairlume on the phone": "Wiadoma są wëłączoné w Pairlume na telefónie",
+    "That notification is gone": "Ti wiadomòscë ju ni ma",
+    "Which button?": "Chtëren knëp?",
+    "It has no such button": "Ni ma taczégò knëpa",
+    "That button takes no answer": "Ten knëp nie przëjimô òdpòwiedzë",
+    "An answer has 1 to 2000 characters": "Òdpòwiédz mô òd 1 do 2000 znaków",
+    "The app no longer takes that": "Aplikacjô ju tegò nie przëjimô",
+    "Pair with this computer?": "Sparowac z tim kòmpùtrã?",
+    "A pairing code from outside the app: the computer at %1. Pair only if you opened it yourself.": "Kòd parowaniô zza aplikacji: kòmpùter pòd adresã %1. Parujë leno, czej të gò sóm òtemkł.",
+    "Not now": "Nié terô"
   },
   "install": {
     "Pairlume is gone. Your pairings stay in ~/.config/pairlume until you delete that folder.": "Pairlume wëmazóné. Twòje parowania òstôwają w ~/.config/pairlume, jaż nie wëmażesz ti katalogù.",

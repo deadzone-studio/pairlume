@@ -397,6 +397,22 @@ async fn calls_need_the_permission_and_are_cleaned() {
     let now = pc.d.status()[0].call.clone().expect("the call is in the status");
     assert_eq!(now.state, CallState::Ringing);
     assert_eq!(png, None, "not a picture");
+    // a number the network hides stays empty, it is not "Unnamed device"
+    send(
+        &mut l.stream,
+        &Msg::Call { state: CallState::Ringing, number: String::new(), name: String::new(), missed: false, png: None },
+    )
+    .await
+    .unwrap();
+    let (number, name) = pc
+        .wait(|e| match e {
+            Event::Call { number, name, .. } if number.is_empty() || number == "Unnamed device" => {
+                Some((number.clone(), name.clone()))
+            }
+            _ => None,
+        })
+        .await;
+    assert_eq!((number.as_str(), name.as_str()), ("", ""));
     let d = pc.d.clone();
     let q = tokio::spawn(async move {
         d.ask(&fp, Capability::Calls, |req| Msg::CallDo { req, what: CallAction::Answer, number: None }).await

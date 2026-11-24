@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.pairlume.core.Link
 import dev.pairlume.core.Message
+import dev.pairlume.core.longNumber
 import dev.pairlume.core.message
 import dev.pairlume.core.text
 import dev.pairlume.core.texts
@@ -159,6 +160,8 @@ class LinkService : Service() {
     /** until the connection ends */
     private fun talk(l: Link) {
         l.patience = 40_000
+        // a new connection is told everything again
+        mayUse = emptySet()
         // the computer turns a phone it does not know away right after the handshake: it counts once it speaks
         var m = l.wire.receive()
         show(true)
@@ -181,13 +184,25 @@ class LinkService : Service() {
                 when (m.type) {
                     "allowed" -> {
                         val caps = m.texts("caps")
+                        val was = mayUse
+                        mayUse = caps
                         main.post { if (running) LinkState.allowed = caps }
                         // a battery that was refused before is told again
                         battery?.let { if ("battery" in caps) l.wire.send(it) }
+                        // the notifications there are, once they may go; their icons again for this computer
+                        if ("notifications" in caps && "notifications" !in was) { iconsSent.clear(); Notifs.current?.sendAll() }
                     }
                     "bluetooth" -> {
                         val a = m.text("address")
                         main.post { if (running) LinkState.bluetooth = a }
+                    }
+                    "notif_do" -> {
+                        val q = m
+                        answers.execute {
+                            val n = Notifs.current
+                            val a = n?.answer(q) ?: message("notif_error", "req" to q.longNumber("req"), "reason" to t("Notification access is off on the phone"))
+                            try { l.wire.send(a) } catch (_: Exception) { l.close() }
+                        }
                     }
                     "call_do" -> {
                         val q = m
@@ -209,6 +224,12 @@ class LinkService : Service() {
     }
 
     /** something the phone tells by itself, after the answers that are on their way */
+    /** what the computer lets this phone do, at once (LinkState follows on the main thread) */
+    @Volatile private var mayUse = emptySet<String>()
+
+    /** apps whose icon this connection already got */
+    private val iconsSent = java.util.Collections.synchronizedSet(HashSet<String>())
+
     private fun say(m: Message) {
         val l = link ?: return
         if (running) answers.execute { try { l.wire.send(m) } catch (_: Exception) { } }
@@ -224,6 +245,10 @@ class LinkService : Service() {
         fun textCame(from: String, body: String) { current?.tell(from, body) }
         /** the computer opens its Bluetooth pairing for a while */
         fun askBluetooth() { current?.say(message("bt_pair")) }
+        /** a notification for the computer, when it may have them */
+        fun notify(m: Message) { val s = current ?: return; if ("notifications" in s.mayUse) s.say(m) }
+        /** the icon of an app, the first time this connection needs it */
+        fun iconFor(app: String, make: () -> String?): String? { val s = current ?: return null; return if (s.iconsSent.add(app)) make() else null }
         fun start(c: Context) { if (Saved(c).computer != null) c.startForegroundService(Intent(c, LinkService::class.java)) }
         fun stop(c: Context) { c.stopService(Intent(c, LinkService::class.java)) }
     }

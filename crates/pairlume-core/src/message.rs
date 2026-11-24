@@ -125,12 +125,12 @@ impl Notification {
     fn clean(&mut self) {
         self.key = self.key.chars().filter(|c| !c.is_control()).take(300).collect();
         self.app = self.app.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '.' || *c == '_').take(120).collect();
-        self.app_name = crate::store::clean_name(&self.app_name);
-        self.title = crate::store::clean_name(&self.title).chars().take(200).collect();
+        self.app_name = crate::store::clean_line(&self.app_name, 48);
+        self.title = crate::store::clean_line(&self.title, 200);
         self.text = clean_text(&self.text).chars().take(2000).collect();
         self.actions.truncate(3);
         for a in &mut self.actions {
-            a.title = crate::store::clean_name(&a.title).chars().take(40).collect();
+            a.title = crate::store::clean_line(&a.title, 40);
         }
         if self.icon.as_ref().is_some_and(|p| !Face { address: String::new(), png: p.clone() }.sound()) {
             self.icon = None;
@@ -391,8 +391,8 @@ impl Msg {
             Self::Notif(n) => n.clean(),
             Self::NotifGone { key } => *key = key.chars().filter(|c| !c.is_control()).take(300).collect(),
             Self::Call { number, name, png, .. } => {
-                *number = crate::store::clean_name(number).chars().take(40).collect();
-                *name = crate::store::clean_name(name);
+                *number = crate::store::clean_line(number, 40);
+                *name = crate::store::clean_line(name, 48);
                 if png.as_ref().is_some_and(|p| !Face { address: String::new(), png: p.clone() }.sound()) {
                     *png = None;
                 }
