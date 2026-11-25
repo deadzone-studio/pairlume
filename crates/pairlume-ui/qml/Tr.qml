@@ -18,5 +18,13 @@ QtObject {
     function t(x) { return words[x] || x }
     // another window may choose another language: all of them follow (not the installer, which chooses its own)
     property bool pinned: false
-    property Timer look: Timer { interval: 1500; repeat: true; running: !tr.pinned; onTriggered: { const c = tr.s.chosenLanguage(); if (c !== tr.chosen) tr.chosen = c } }
+    // how the phone's notifications look: "card" at the top right, or "banner" at the top like texts on an iPhone
+    property string notifStyle: tr.s.uiValue("notif_style") || "card"
+    property Timer look: Timer {
+        interval: 1500; repeat: true; running: !tr.pinned
+        onTriggered: {
+            const c = tr.s.chosenLanguage(); if (c !== tr.chosen) tr.chosen = c
+            const n = tr.s.uiValue("notif_style") || "card"; if (n !== tr.notifStyle) tr.notifStyle = n
+        }
+    }
 }

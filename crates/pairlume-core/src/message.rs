@@ -119,6 +119,21 @@ pub struct Notification {
     /// the app's icon (PNG, base64), sent with the first notification of an app
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+    /// how far a download, an upload or the like has come; it comes again as it moves
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress: Option<NotifProgress>,
+}
+
+/// the bar of a notification: `value` of `max`, or only that it is busy
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NotifProgress {
+    #[serde(default)]
+    pub value: u32,
+    #[serde(default)]
+    pub max: u32,
+    /// no way to tell how far: it only moves
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub busy: bool,
 }
 
 impl Notification {
@@ -131,6 +146,12 @@ impl Notification {
         self.actions.truncate(3);
         for a in &mut self.actions {
             a.title = crate::store::clean_line(&a.title, 40);
+        }
+        if let Some(p) = &mut self.progress {
+            p.value = p.value.min(p.max);
+            if p.max == 0 && !p.busy {
+                self.progress = None;
+            }
         }
         if self.icon.as_ref().is_some_and(|p| !Face { address: String::new(), png: p.clone() }.sound()) {
             self.icon = None;
@@ -418,5 +439,20 @@ impl Msg {
             }
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_notification_carries_its_progress() {
+        let j = r#"{"t":"notif","key":"k","app":"a.b","title":"plik.zip","progress":{"value":700,"max":500}}"#;
+        let Msg::Notif(n) = serde_json::from_str::<Msg>(j).unwrap().clean() else { panic!() };
+        assert_eq!(n.progress, Some(NotifProgress { value: 500, max: 500, busy: false }));
+        let j = r#"{"t":"notif","key":"k","app":"a.b","progress":{"value":0,"max":0}}"#;
+        let Msg::Notif(n) = serde_json::from_str::<Msg>(j).unwrap().clean() else { panic!() };
+        assert_eq!(n.progress, None);
     }
 }

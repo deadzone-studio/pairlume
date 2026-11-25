@@ -73,6 +73,13 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "chooseLanguage"]
         fn choose_language(self: &Service, code: QString);
+        /// another choice of the settings in ui.json ("" when not made), e.g. notif_style
+        #[qinvokable]
+        #[cxx_name = "uiValue"]
+        fn ui_value(self: &Service, key: QString) -> QString;
+        #[qinvokable]
+        #[cxx_name = "setUiValue"]
+        fn set_ui_value(self: &Service, key: QString, value: QString);
         /// for the installer: what is in the release folder and on this computer (JSON: version, installed, apk_url,
         /// phones on a cable)
         #[qinvokable]
@@ -299,23 +306,21 @@ impl qobject::Service {
 
     fn choose_language(&self, code: QString) {
         let code = String::from(&code);
-        let Ok(dir) = config_dir() else { return };
-        let path = dir.join("ui.json");
-        let mut v = std::fs::read_to_string(&path)
-            .ok()
-            .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
-            .unwrap_or_else(|| serde_json::json!({}));
-        if let Some(o) = v.as_object_mut() {
-            if code.is_empty() {
-                o.remove("lang");
-            } else if LANGUAGES.iter().any(|(k, _)| *k == code) {
-                o.insert("lang".into(), code.into());
-            }
+        if code.is_empty() || LANGUAGES.iter().any(|(k, _)| *k == code) {
+            write_ui("lang", &code);
         }
-        let _ = std::fs::create_dir_all(&dir);
-        let tmp = path.with_extension("json.tmp");
-        if std::fs::write(&tmp, v.to_string()).is_ok() {
-            let _ = std::fs::rename(tmp, path);
+    }
+
+    fn ui_value(&self, key: QString) -> QString {
+        let v = read_ui().get(&String::from(&key)).and_then(|v| v.as_str().map(String::from)).unwrap_or_default();
+        QString::from(v.as_str())
+    }
+
+    fn set_ui_value(&self, key: QString, value: QString) {
+        let key = String::from(&key);
+        // only plain names, never the language this way
+        if key != "lang" && !key.is_empty() && key.chars().all(|c| c.is_ascii_lowercase() || c == '_') {
+            write_ui(&key, &String::from(&value).chars().take(60).collect::<String>());
         }
     }
 
@@ -485,5 +490,32 @@ fn as_root(cmds: &str, password: &str) -> (bool, String) {
             (false, err.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim().to_string())
         }
         Err(e) => (false, e.to_string()),
+    }
+}
+
+/// the choices of the settings: ~/.config/pairlume/ui.json
+fn read_ui() -> serde_json::Map<String, serde_json::Value> {
+    config_dir()
+        .ok()
+        .and_then(|d| std::fs::read_to_string(d.join("ui.json")).ok())
+        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+        .and_then(|v| v.as_object().cloned())
+        .unwrap_or_default()
+}
+
+/// sets one choice ("" takes it away), written whole and then moved, so a window never reads half a file
+fn write_ui(key: &str, value: &str) {
+    let Ok(dir) = config_dir() else { return };
+    let mut o = read_ui();
+    if value.is_empty() {
+        o.remove(key);
+    } else {
+        o.insert(key.into(), value.into());
+    }
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("ui.json");
+    let tmp = path.with_extension("json.tmp");
+    if std::fs::write(&tmp, serde_json::Value::Object(o).to_string()).is_ok() {
+        let _ = std::fs::rename(tmp, path);
     }
 }

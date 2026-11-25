@@ -9,6 +9,9 @@ Rectangle {
     required property Texts texts
     required property var model
     readonly property var actions: { try { return JSON.parse(model.actions) } catch (e) { return [] } }
+    // a code in it (a bank, a login): copied with one click instead of answered
+    readonly property string code: texts.code(model.title + " " + model.text)
+    property bool copied: false
     property int replying: -1
     readonly property bool busy: replying >= 0 || hover.hovered
     signal closed
@@ -26,6 +29,7 @@ Rectangle {
         }
     }
     HoverHandler { id: hover }
+    TextEdit { id: clip; visible: false }
     Column {
         id: col
         x: 18
@@ -47,19 +51,26 @@ Rectangle {
         }
         Text { width: parent.width; visible: text !== ""; text: n.model.title; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.text; font { pixelSize: 15; weight: Font.DemiBold } }
         Text { width: parent.width; visible: text !== ""; text: n.model.text; textFormat: Text.PlainText; wrapMode: Text.Wrap; maximumLineCount: 4; elide: Text.ElideRight; color: Theme.text; font.pixelSize: 14; lineHeight: 1.1 }
+        ProgressLine { width: parent.width; max: n.model.pMax; value: n.model.pValue; busy: n.model.pBusy; visible: n.model.pMax > 0 || n.model.pBusy }
         Item { width: 1; height: 4 }
         // the buttons of the notification, and ours: dismiss
         Flow {
             width: parent.width
             spacing: 8
             visible: n.replying < 0
+            Pill {
+                visible: n.code !== ""
+                filled: true
+                text: n.copied ? Tr.t("Copied") : Tr.t("Copy %1").arg(n.code)
+                onClicked: { clip.text = n.code; clip.selectAll(); clip.copy(); n.copied = true }
+            }
             Repeater {
                 model: n.actions
                 Pill {
                     required property var modelData
                     required property int index
                     text: modelData.title || ""
-                    filled: index === 0 && !!modelData.reply
+                    filled: index === 0 && !!modelData.reply && n.code === ""
                     onClicked: modelData.reply ? n.replying = index : n.texts.notifDo(n.model.key, "action", index)
                 }
             }

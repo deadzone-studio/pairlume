@@ -28,6 +28,7 @@ impl Notifs {
             when: now - ago,
             actions,
             icon,
+            progress: None,
         };
         Notifs {
             now: vec![

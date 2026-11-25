@@ -455,6 +455,7 @@ async fn notifications_need_the_permission_are_kept_and_cleaned() {
         when: 1,
         actions: vec![NotifAction { title: "Reply".into(), reply: true }],
         icon: Some("iVBORw0KGgoAAA=".into()),
+        progress: None,
     };
     send(&mut l.stream, &Msg::Notif(n("a", "Emma"))).await.unwrap();
     loop {

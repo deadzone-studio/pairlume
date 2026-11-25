@@ -106,9 +106,10 @@ the phone.
 `notif` comes by itself when a notification appears or changes: `key` (the phone's name for it, the same while it is
 updated), `app` (the package), `app_name`, `title`, `text`, `when`, `actions` (at most 3: `title`, and `reply` when the
 button takes a written answer) and `icon`, the app's icon (PNG, base64, at most 48 KB) with the first notification of an
-app. `notif_gone` (`key`) says it is gone. The computer asks `notif_do` (`req`, `key`, `what`: `dismiss`, `action` or
+app, and `progress` when it has a bar (`value` of `max`, or `busy` when it cannot tell how far): it comes again as
+the bar moves, at most every 600 ms. `notif_gone` (`key`) says it is gone. The computer asks `notif_do` (`req`, `key`, `what`: `dismiss`, `action` or
 `reply`, `action`: the number of the button, `text`: the answer); the phone answers `notif_done` or `notif_error`
-(`reason`). The phone sends no notification that is ongoing (music, a running call, its own), nor one an app marks as
+(`reason`). The phone sends no notification that is ongoing (music, a running call, its own) unless it has a bar, nor one an app marks as
 secret on the lock screen, and the owner of the phone can leave apps out.
 
 The phone sends something at least every 15 s; after 45 s of silence the computer closes the connection. A second

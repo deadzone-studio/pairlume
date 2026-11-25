@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -100,7 +101,21 @@ class Notifs : NotificationListenerService() {
         val choices = NotifChoices(this)
         if (!choices.on) return null
         val n = sbn.notification ?: return null
-        if (sbn.packageName == packageName || sbn.isOngoing || n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return null
+        val x0 = n.extras
+        val max = x0.getInt(Notification.EXTRA_PROGRESS_MAX, 0)
+        val busy = x0.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE, false)
+        val value = x0.getInt(Notification.EXTRA_PROGRESS, 0)
+        val bar = max > 0 || busy
+        // ongoing ones are music, a call, a service: left out, except a download or the like with its bar
+        if (sbn.packageName == packageName || (sbn.isOngoing && !bar) || n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return null
+        // a bar moves many times a second: at most every 600 ms, and always when it is full
+        if (bar) {
+            val now = SystemClock.elapsedRealtime()
+            val last = lastBar[sbn.key]
+            if (last != null && now - last < 600 && (busy || value < max)) return null
+            lastBar[sbn.key] = now
+            if (lastBar.size > 50) lastBar.keys.take(lastBar.size - 50).forEach { lastBar.remove(it) }
+        }
         if (n.visibility == Notification.VISIBILITY_SECRET) return null
         if (sbn.packageName in choices.skipped) return null
         choices.seen = (choices.seen + sbn.packageName).let { if (it.size > 80) it.drop(it.size - 80).toSet() else it }
@@ -114,8 +129,11 @@ class Notifs : NotificationListenerService() {
         val withActions = JsonObject(base + ("actions" to JsonArray(actions.map { a ->
             buildJsonObject { put("title", (a.title ?: "").toString().take(40)); if (!a.remoteInputs.isNullOrEmpty()) put("reply", true) }
         })))
+        val withBar = if (!bar) withActions else JsonObject(withActions + ("progress" to buildJsonObject {
+            put("value", value.coerceIn(0, maxOf(max, 0))); put("max", maxOf(max, 0)); if (busy) put("busy", true)
+        }))
         val icon = LinkService.iconFor(sbn.packageName) { icon(sbn.packageName) }
-        return if (icon == null) withActions else JsonObject(withActions + ("icon" to JsonPrimitive(icon)))
+        return if (icon == null) withBar else JsonObject(withBar + ("icon" to JsonPrimitive(icon)))
     }
 
     private fun appName(pkg: String) = try { packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString() } catch (_: Exception) { pkg }
@@ -164,6 +182,9 @@ class Notifs : NotificationListenerService() {
             no(t("The phone could not do that"))
         }
     }
+
+    // when the bar of each notification was last sent; only the worker thread touches it
+    private val lastBar = LinkedHashMap<String, Long>()
 
     companion object {
         @Volatile var current: Notifs? = null
