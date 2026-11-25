@@ -13,7 +13,8 @@ Rectangle {
     readonly property int replyAt: { for (let i = 0; i < actions.length; i++) if (actions[i].reply) return i; return -1 }
     readonly property string code: texts.code(model.title + " " + model.text)
     readonly property bool bar: model.pMax > 0 || model.pBusy
-    property bool open: false
+    // opened at once when it was shown for an answer (a reply pressed in the desktop's notification)
+    property bool open: !!model.answer
     property bool copied: false
     readonly property bool busy: open || hover.hovered
     signal closed

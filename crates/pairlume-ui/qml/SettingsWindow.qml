@@ -98,7 +98,8 @@ Window {
                 spacing: 2
                 Repeater {
                     model: [["card", Tr.t("Cards"), Tr.t("At the top right, with their buttons")],
-                            ["banner", Tr.t("Like texts on an iPhone"), Tr.t("A banner at the top; a click opens the conversation")]]
+                            ["banner", Tr.t("Like texts on an iPhone"), Tr.t("A banner at the top; a click opens the conversation")],
+                            ["system", Tr.t("As the system's"), Tr.t("Your desktop shows them like all its notifications")]]
                     delegate: Item {
                         id: st
                         required property var modelData
@@ -127,7 +128,22 @@ Window {
                 }
                 Item { width: 1; height: 18 }
                 // how it looks, with your colors
+                // the system's look is the desktop's own: no picture of it here, a real one to try
+                Column {
+                    visible: Tr.notifStyle === "system"
+                    width: parent.width
+                    spacing: 12
+                    Text { width: parent.width; wrapMode: Text.Wrap; textFormat: Text.PlainText; horizontalAlignment: Text.AlignHCenter; color: Theme.dim; font.pixelSize: 13
+                           text: Tr.t("They look the way your desktop draws notifications. An answer opens a small Pairlume window.") }
+                    Pill {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: Tr.t("Show one to try")
+                        onClicked: service.sysShow(JSON.stringify({ key: "pairlume-example", app: "", app_name: "Pairlume", title: win.example.title, text: win.example.text,
+                                                                     actions: [["dismiss", Tr.t("Dismiss")]] }))
+                    }
+                }
                 Item {
+                    visible: Tr.notifStyle !== "system"
                     width: parent.width
                     height: (Tr.notifStyle === "banner" ? pb.height : pc.height) * 0.92
                     // only to look at: clicks stop here

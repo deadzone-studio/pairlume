@@ -99,6 +99,22 @@ pub mod qobject {
         fn firewalled(self: Pin<&mut Service>, ok: bool, why: QString);
         #[qsignal]
         fn said(self: Pin<&mut Service>, line: QString);
+        /// the "system" look: a notification of the phone (JSON: key, app, app_name, title, text, icon, actions
+        /// [[name, label]], value) shown, or shown again, by the desktop's own notifications
+        #[qinvokable]
+        #[cxx_name = "sysShow"]
+        fn sys_show(self: Pin<&mut Service>, json: QString);
+        /// puts text into the clipboard without a window in front (wl-copy); false when that cannot be done
+        #[qinvokable]
+        #[cxx_name = "copyText"]
+        fn copy_text(self: &Service, text: QString) -> bool;
+        #[qinvokable]
+        #[cxx_name = "sysClose"]
+        fn sys_close(self: Pin<&mut Service>, key: QString);
+        /// a button of such a notification was pressed (its name)
+        #[qsignal]
+        #[cxx_name = "sysPressed"]
+        fn sys_pressed(self: Pin<&mut Service>, key: QString, action: QString);
         #[qsignal]
         fn ended(self: Pin<&mut Service>, code: i32);
         /// starts another window of Pairlume (JSON list of arguments)
@@ -133,6 +149,8 @@ pub struct ServiceRust {
     colors: QString,
     blurred: bool,
     started: bool,
+    // the thread of the desktop's notifications, from the first one on
+    sys: std::sync::Mutex<Option<std::sync::mpsc::Sender<crate::sysnotify::Cmd>>>,
 }
 
 fn connect() -> Result<BufReader<UnixStream>> {
@@ -365,6 +383,59 @@ impl qobject::Service {
         let v = serde_json::json!({ "version": version, "installed": installed, "apk_url": url, "phones": phones,
             "has_installer": from.join("install.sh").is_file(), "firewall": firewall });
         QString::from(v.to_string().as_str())
+    }
+
+    fn sys_send(self: Pin<&mut Self>, cmd: crate::sysnotify::Cmd) {
+        let qt = self.qt_thread();
+        let mut g = self.rust().sys.lock().unwrap_or_else(|e| e.into_inner());
+        let tx = g.get_or_insert_with(|| {
+            crate::sysnotify::start(Box::new(move |key, action| {
+                let (key, action) = (QString::from(key.as_str()), QString::from(action.as_str()));
+                let _ = qt.queue(move |o| o.sys_pressed(key, action));
+            }))
+        });
+        let _ = tx.send(cmd);
+    }
+
+    fn sys_show(self: Pin<&mut Self>, json: QString) {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(&String::from(&json)) else { return };
+        let text = |k: &str| v.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
+        let actions = v
+            .get("actions")
+            .and_then(|a| a.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|p| Some((p.get(0)?.as_str()?.to_string(), p.get(1)?.as_str()?.to_string())))
+                    .take(6)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let value = v.get("value").and_then(|x| x.as_i64()).map(|x| x as i32);
+        let show = crate::sysnotify::Show {
+            key: text("key"),
+            app: text("app"),
+            app_name: text("app_name"),
+            title: text("title"),
+            text: text("text"),
+            icon: text("icon"),
+            actions,
+            value,
+        };
+        self.sys_send(crate::sysnotify::Cmd::Show(show));
+    }
+
+    fn copy_text(&self, text: QString) -> bool {
+        std::process::Command::new("wl-copy")
+            .arg("--")
+            .arg(String::from(&text))
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .is_ok_and(|s| s.success())
+    }
+
+    fn sys_close(self: Pin<&mut Self>, key: QString) {
+        self.sys_send(crate::sysnotify::Cmd::Close(String::from(&key)));
     }
 
     fn open_firewall(self: Pin<&mut Self>, password: QString) {

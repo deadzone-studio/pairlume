@@ -1038,6 +1038,7 @@ dependencies = [
  "cxx-qt",
  "cxx-qt-build",
  "cxx-qt-lib",
+ "dbus",
  "pairlume-core",
  "pairlumed",
  "qrcode",

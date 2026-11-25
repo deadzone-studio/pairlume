@@ -13,6 +13,7 @@ anyhow.workspace = true
 cxx = "1"
 cxx-qt = "0.10"
 cxx-qt-lib = { version = "0.10", features = ["qt_qml", "qt_gui"] }
+dbus = "0.9"
 qrcode.workspace = true
 serde_json.workspace = true
 
