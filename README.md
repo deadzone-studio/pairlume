@@ -4,8 +4,8 @@ Your Android phone and your Hyprland desktop as one: texts, calls, notifications
 
 ![Pairing: shake the phone, scan a code, compare six digits, connected](docs/img/pairing.png)
 
-> **Early days.** Pairing and reconnecting work between a computer and an Android phone, texts are being tried. Nothing
-> here is ready for daily use.
+> **Early days.** Pairing, texts, calls and notifications work between a computer and an Android phone, and are being
+> tried on real phones. Nothing here is ready for daily use yet.
 
 ## Where it is
 
@@ -15,7 +15,7 @@ Your Android phone and your Hyprland desktop as one: texts, calls, notifications
 | 1 | Pairing (shake, QR, digits), reconnecting, battery | works, being tried on real phones |
 | 2 | Texts: window, panel, chat bubbles | works |
 | 3 | Calls: who calls, answer, decline, call back (the voice stays on the phone) | works with the pretend phone, being tried on real ones |
-| 4 | Notifications in three styles, colors from the wallpaper, glass, animations | planned |
+| 4 | Notifications in three styles, colors from the wallpaper, glass, animations | works |
 | **0.1** | **first release** | |
 | later | Files, clipboard, wireless screen, plugins and themes, remote control, camera | planned |
 
@@ -59,6 +59,9 @@ session. Without a desktop, or with `--text`, it asks the same in the terminal. 
 ./install.sh --remove [--purge]                          take it away (--purge: forget the paired phones too)
 ```
 
+On Arch, `contrib/aur/PKGBUILD` builds a package (`makepkg -si` in that folder) that puts everything in `/usr`; it says
+after installing which user services to turn on. It will be in the AUR from 0.1.
+
 The phone app is also on its own as `Pairlume-….apk` (Android 10 or newer). Releases are early previews until 0.1.
 `contrib/bundle.sh` makes the release files from a build.
 
@@ -90,6 +93,14 @@ target/debug/pairlume-ui calls         # waits, and shows a call when the phone 
 ![Texts as a window, a panel and bubbles](docs/img/texts.png)
 
 ![A call: ringing, answered, missed](docs/img/calls.png)
+
+`target/debug/pairlume-ui notifications` shows the phone's notifications, with their buttons and a line to answer in.
+A code in one gets its own "Copy" button, a download its bar, moving as it goes. Three looks, picked in
+`pairlume-ui settings` and changed at once: cards at the top right, banners at the top like texts on an iPhone (a click
+opens the conversation), or handed to your desktop's own notifications (any `org.freedesktop.Notifications` server),
+where their buttons still work.
+
+![Notifications as cards and as banners](docs/img/notifications.png)
 
 The Android app (Android 10 or newer) needs JDK 21 and the Android SDK (platform 36):
 

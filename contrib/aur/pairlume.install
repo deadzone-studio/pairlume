@@ -1,0 +1,12 @@
+post_install() {
+  cat <<'TXT'
+Pairlume: start it for your user with
+  systemctl --user enable --now pairlumed pairlume-notifications pairlume-calls
+then pair a phone: pairlume-ui (or "Pair a phone" in the menu).
+The firewall has to let TCP 47321 in (and UDP 5353 to find the computer).
+The phone app: https://github.com/deadzone-studio/pairlume/releases
+TXT
+}
+post_upgrade() {
+  echo "Pairlume: restart it with  systemctl --user restart pairlumed pairlume-notifications pairlume-calls"
+}

@@ -1,0 +1,51 @@
+# Maintainer: M4rtwy <202405529+M4rtwy@users.noreply.github.com>
+pkgname=pairlume
+pkgver=0.0.2
+pkgrel=1
+pkgdesc="Your Android phone and your Hyprland desktop as one: texts, calls, notifications"
+arch=('x86_64')
+url="https://github.com/deadzone-studio/pairlume"
+license=('GPL-3.0-or-later')
+depends=('dbus' 'systemd-libs' 'qt6-base' 'qt6-declarative' 'layer-shell-qt' 'gcc-libs' 'glibc')
+makedepends=('cargo' 'cmake' 'clang')
+optdepends=('wl-clipboard: copy codes from notifications in the system look'
+            'android-tools: put the app on a phone over a cable')
+options=('!lto')  # ring does not link with makepkg's LTO
+install=pairlume.install
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable CARGO_TARGET_DIR=target
+  cargo build --frozen --release -p pairlumed -p pairlume-ui
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable CARGO_TARGET_DIR=target
+  cargo test --frozen --release --workspace
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  for b in pairlumed pairlume pairlume-ui; do
+    install -Dm755 "target/release/$b" "$pkgdir/usr/bin/$b"
+  done
+  # the units start what the package put in /usr/bin, not ~/.local/bin
+  for u in contrib/systemd/*.service; do
+    sed 's|%h/.local/bin/|/usr/bin/|' "$u" | install -Dm644 /dev/stdin "$pkgdir/usr/lib/systemd/user/$(basename "$u")"
+  done
+  for d in share/applications/*.desktop; do
+    case "$d" in *-autostart.desktop) continue ;; esac
+    install -Dm644 "$d" "$pkgdir/usr/share/applications/$(basename "$d")"
+  done
+  install -Dm644 share/icons/io.github.m4rtwy.pairlume.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/io.github.m4rtwy.pairlume.svg"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
